@@ -27,6 +27,29 @@ def main():
 		realFile = path + "/" + f;
 		className = tempFile.replace(".java", "").replace(path + "/","");
 
+		classDeclaration = "public class " + className;
+		
+		fHandle = open(realFile);
+		for line in fHandle:
+			if classDeclaration in line:
+				break;
+			if "package " in line:
+				package = line.replace("package ", "").partition(';')[0];
+				className = package + "." + className;
+				#1. create a new directory for the package
+				#2. Move the class file to the package directory
+				
+				cmd = ( "cd \"" + path + "\" && mkdir " + package 
+					    + " && mv " + className + ".class ./" + package  
+					  );
+				print cmd;
+				os.system(cmd);
+
+		#end for line in f
+		fHandle.close();
+
+
+
 		print "##################################\n";
 		print student;
 		print realFile + "\n\n";
@@ -47,7 +70,7 @@ def main():
 		cmds = [];
 		cmds.append( "clear" );
 		cmds.append( "rm -f " + tempFile );
-		cmds.append( "less \"" + realFile + "\"");
+		cmds.append( "vim \"" + realFile + "\"");
 
 		for c in cmds:
 			os.system(c);
