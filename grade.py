@@ -1,22 +1,36 @@
-################## 
-# Cory Nance
-# Script to grade labs 
-# 20 August 2014
+##########################################################################
+# Author:      Cory Nance												 
+# Description: Script to grade labs   									 
+# Date: 	   20 August 2014											 
+# Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
+##########################################################################
 
 import os; 
 import sys;
 
 def main():
 	if len(sys.argv) < 2: 
-		path = raw_input("Please enter the folder path: ");
+		path = raw_input("Please enter the absolute path (zip/folder): ");
 	else:
 		path = str(sys.argv[1]);
 	#end if
+	
 
+
+	#TODO Finish adding zip support
+	z = len(path) - 4;
+	if '.zip' is path[z:]:
+		os.system( "mkdir " + path[0:z]);
+		
 	files = os.listdir(path);
 	
 	for f in files:
 		
+		#ignore dot files. 
+		if '.' is f[0:1]:
+			continue;
+
+	
 		# Moodle renames all submissions so they cannot be compiled as is. Luckily
 		# it does include the original filename so we can paritition the string
 		# and extract the original filename from it.  From there we can cp the file 
@@ -35,16 +49,18 @@ def main():
 				break;
 			if "package " in line:
 				package = line.replace("package ", "").partition(';')[0];
-				className = package + "." + className;
 				#1. create a new directory for the package
 				#2. Move the class file to the package directory
 				
-				cmd = ( "cd \"" + path + "\" && mkdir " + package 
-					    + " && mv " + className + ".class ./" + package  
-					  );
+				cmd = ( "mkdir \"" + path + "/" + package + 
+					"\"; mv \"" + path + "/" + className + 
+					".class\" \"" + path + "/" + package + "/" + 
+					className + ".class\""  
+				 );
+
 				print cmd;
 				os.system(cmd);
-
+				className = package + "." + className;
 		#end for line in f
 		fHandle.close();
 
