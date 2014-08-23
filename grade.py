@@ -1,3 +1,4 @@
+
 ##########################################################################
 # Author:      Cory Nance												 
 # Description: Script to grade labs   									 
@@ -5,31 +6,32 @@
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
 ##########################################################################
 
-##########################################################################
-# Modified by:  Phillip Wall
-# Date:        22 August 2014
-# Note:        Removed all the unnecessary semi-colons at the end of the lines
-##########################################################################
-
 import os
 import sys
 
 import subprocess
+import zipfile
 import re
 
 def main():
     if len(sys.argv) < 2:
-        path = raw_input("Please enter the absolute path (zip/folder): ")
+        path = raw_input("Please enter the path (zip/folder): ")
     else:
         path = str(sys.argv[1])
     #end if
 
+    path = os.path.abspath(path) #Convert the path to a absolute path
 
-
-    #TODO Finish adding zip support
+    #TODO Test zip support
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
-        os.system( "mkdir " + path)
+        os.mkdir(path[:-4])
+
+        with zipfile.ZipFile(path) as z:
+            z.extractall(path=path[:-4]) #Extract the files
+
+        path = path[:-4] #Set path to newly created directory
+
 
     files = os.listdir(path)
 
@@ -58,12 +60,6 @@ def main():
         # it does include the original filename so we can paritition the string
         # and extract the original filename from it.  From there we can cp the file 
         # in order to compile and run.
-
-        ##Next section commented out by Phillip Wall
-        # student = f.partition('_')[0]
-        # tempFile = path + "/" + f.partition('assignsubmission_file_')[2]
-        # realFile = path + "/" + f
-        # className = tempFile.replace(".java", "").replace(path + "/","")
 
         ## Start author Phillip Wall
         m = regex.search(f) #Attempt to match the filename
