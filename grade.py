@@ -13,6 +13,7 @@ import subprocess
 import zipfile
 import re
 import datetime
+import testing
 
 
 def main():
@@ -22,6 +23,7 @@ def main():
         path = str(sys.argv[1])
     #end if
 
+    tests = []
     path = os.path.abspath(path)  # Convert the path to an absolute path
 
     #TODO Test zip support
@@ -73,7 +75,8 @@ def main():
 
         ans = ""
         while not ans.lower()[0] == 'y':
-            subprocess.call(('java', className))
+            if len(tests) <= 1:
+                testing.ManualTest().start(studentName, className)
 
             print '\n'
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")
