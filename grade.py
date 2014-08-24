@@ -14,6 +14,10 @@ import zipfile
 import re
 import datetime
 
+from threading import Thread
+from Queue import Queue
+
+MAX_BUILDS = 5
 
 def main():
     if len(sys.argv) < 2:
@@ -36,40 +40,28 @@ def main():
 
     students = prepare_directory(path)
 
-    for studentName, classes in students.iteritems():
+    q = Queue(maxsize=MAX_BUILDS)
 
-        className = classes[0]  # For now we're assuming single file java projects
+    t = Thread(target=do_builds, args=(path, students.iteritems(), q))
 
-        wrkpath = "{}/{}".format(path, studentName)
+    while t.isAlive() or q.not_empty:
 
-        os.chdir(wrkpath)  # Change directory to the student's directory
+        studentName, className, buildProc = q.get()
 
         print "#" * 35, '\n'
         print studentName
         print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
 
-        print "\nBuilding project..."
+        if not buildProc.poll():
+            print "Wating for build to finish..."
+            buildProc.wait()
 
-        with open("build.log", "a") as log:  # Start logging for the build
-            #Log entry header
-            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
-            log.write("Starting build of %s.java\n\n" % className)
+        if buildProc.returncode != 0:
+            print "{student}'s project didn't build".format(student=studentName)
 
-            #Make srcPath
-            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
-            srcPath = "/".join(srcPath) + '.java'
+        wrkpath = "{}/{}".format(path, studentName)
 
-            #Do build, direct output to the log
-            code = subprocess.call(('javac', srcPath), stdout=log, stderr=log)
-
-            #Check the return code to see if build was successful
-            if code == 0:
-                log.write("\n\nBuild successful\n")
-            else:
-                log.write("\n\nBuild was not sucessful\n")
-                print "{student}'s project ({class}) did not build. See build log."
-
-        print "Starting {student}'s project...".format(student=studentName)
+        os.chdir(wrkpath)
 
         ans = "y"
         while ans.lower()[0] == 'y':
@@ -84,6 +76,28 @@ def main():
 
 
 #end main
+
+def do_builds(path, studentslist, que):
+    for studentName, classes in studentslist:
+
+        className = classes[0]  # For now we're assuming single file java projects
+
+        wrkpath = "{}/{}".format(path, studentName)
+
+
+        with open(wrkpath + "build.log", "a") as log:  # Start logging for the build
+            #Log entry header
+            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+            log.write("Starting build of %s.java\n\n" % className)
+
+            #Make srcPath
+            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
+            srcPath = "/".join(srcPath) + '.java'
+
+            #Do build, direct output to the log
+            proc = subprocess.Popen(('javac', srcPath), stdout=log, stderr=log)
+
+            que.put((studentName, className, proc)) # Add build to queue
 
 
 def prepare_directory(path):
