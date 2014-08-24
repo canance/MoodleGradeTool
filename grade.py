@@ -36,25 +36,46 @@ def main():
 
     students = prepare_directory(path)
 
-
     for studentName, classes in students.iteritems():
 
-        cls = classes[0] # For now we're assuming single file java projects
+        className = classes[0]  # For now we're assuming single file java projects
 
         wrkpath = "{}/{}".format(path, studentName)
 
-        os.chdir(wrkpath)
-        with open("build.log", "a") as log:
-            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
-            log.write("Starting build of %s.java\n\n" % cls)
-            code = subprocess.call(('javac', cls + '.java'), stdout=log, stderr=log)
+        os.chdir(wrkpath)  # Change directory to the student's directory
 
+        print "#" * 35, '\n'
+        print studentName
+        print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
+
+        print "\nBuilding project..."
+
+        with open("build.log", "a") as log:  # Start logging for the build
+            #Log entry header
+            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+            log.write("Starting build of %s.java\n\n" % className)
+
+            #Do build, direct output to the log
+            code = subprocess.call(('javac', className + '.java'), stdout=log, stderr=log)
+
+            #Check the return code to see if build was successful
             if code == 0:
                 log.write("\n\nBuild successful\n")
             else:
                 log.write("\n\nBuild was not sucessful\n")
                 print "{student}'s project ({class}) did not build. See build log."
 
+        print "Starting {student}'s project...".format(student=studentName)
+
+        ans = ""
+        while not ans.lower()[0] == 'y':
+            subprocess.call(('java', className))
+
+            print '\n'
+            ans = raw_input("Program finished, do you want to rerun it? (y/n)")
+            print
+
+    os.chdir(path)
 
 
 #end main
