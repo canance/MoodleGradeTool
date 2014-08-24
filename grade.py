@@ -71,8 +71,8 @@ def main():
 
         print "Starting {student}'s project...".format(student=studentName)
 
-        ans = ""
-        while not ans.lower()[0] == 'y':
+        ans = "y"
+        while ans.lower()[0] == 'y':
             #Run the program, gives it temporary control of the console
             subprocess.call(('java', className), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 
