@@ -55,8 +55,12 @@ def main():
             log.write('\n\n' + str(datetime.datetime.now()) + '\n')
             log.write("Starting build of %s.java\n\n" % className)
 
+            #Make srcPath
+            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
+            srcPath = "/".join(srcPath) + '.java'
+
             #Do build, direct output to the log
-            code = subprocess.call(('javac', className + '.java'), stdout=log, stderr=log)
+            code = subprocess.call(('javac', srcPath), stdout=log, stderr=log)
 
             #Check the return code to see if build was successful
             if code == 0:
