@@ -73,8 +73,8 @@ def main():
 
         print "Starting {student}'s project...".format(student=studentName)
 
-        ans = ""
-        while not ans.lower()[0] == 'y':
+        ans = "y"
+        while ans.lower()[0] == 'y':
             if len(tests) <= 1:
                 testing.ManualTest().start(studentName, className)
 
