@@ -73,7 +73,8 @@ def main():
 
         ans = ""
         while not ans.lower()[0] == 'y':
-            subprocess.call(('java', className))
+            #Run the program, gives it temporary control of the console
+            subprocess.call(('java', className), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 
             print '\n'
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")
