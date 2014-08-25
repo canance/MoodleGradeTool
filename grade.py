@@ -148,7 +148,9 @@ def prepare_directory(path):
         destFile = "{}/{}/{}.java".format(path, student, className)
         origFile = "{}/{}".format(path, f)
 
-        os.mkdir("{}/{}".format(path, student))
+        studentdir = "{}/{}".format(path, student)
+        if not os.path.exists(studentdir):
+            os.mkdir(studentdir)
 
         classDeclaration = "public class " + className
 
@@ -159,11 +161,15 @@ def prepare_directory(path):
                     break
                 if "package " in line:
                     #Strip trailing ';' with strip method -Phillip Wall
-                    package = line.replace("package ", "").strip(';')
+                    package = line.replace("package ", "").strip(';\r\n')
                     #1. create a new directory for the package
                     #2. Move the class file to the package directory
+                    destdir = "{}/{}/{}".format(path, student, package)
 
-                    destFile = "{}/{}/{}/{}.java".format(path, student, package, className)
+                    if not os.path.exists(destdir):
+                        os.mkdir(destdir)
+
+                    destFile = destdir + "/%s.java" % className
 
                     className = package + "." + className
 
