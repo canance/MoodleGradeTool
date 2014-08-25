@@ -1,5 +1,4 @@
-
-##########################################################################
+# #########################################################################
 # Author:      Cory Nance												 
 # Description: Script to grade labs   									 
 # Date: 	   20 August 2014											 
@@ -8,10 +7,17 @@
 
 import os
 import sys
+import shutil
 
 import subprocess
 import zipfile
 import re
+import datetime
+
+from threading import Thread
+from Queue import Queue
+
+MAX_BUILDS = 5
 
 def main():
     if len(sys.argv) < 2:
@@ -20,7 +26,7 @@ def main():
         path = str(sys.argv[1])
     #end if
 
-    path = os.path.abspath(path) #Convert the path to a absolute path
+    path = os.path.abspath(path)  # Convert the path to an absolute path
 
     #TODO Test zip support
     # Fixed comparison to leverage negative indexes -Phillip Wall
@@ -28,10 +34,82 @@ def main():
         os.mkdir(path[:-4])
 
         with zipfile.ZipFile(path) as z:
-            z.extractall(path=path[:-4]) #Extract the files
+            z.extractall(path=path[:-4])  # Extract the files
 
-        path = path[:-4] #Set path to newly created directory
+        path = path[:-4]  # Set path to newly created directory
 
+    students = prepare_directory(path)
+
+    q = Queue(maxsize=MAX_BUILDS)
+
+    t = Thread(target=do_builds, args=(path, students.iteritems(), q))
+
+    while t.isAlive() or q.not_empty:
+
+        studentName, className, buildProc = q.get()
+
+        print "#" * 35, '\n'
+        print studentName
+        print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
+
+        if not buildProc.poll():
+            print "Wating for build to finish..."
+            buildProc.wait()
+
+        if buildProc.returncode != 0:
+            print "{student}'s project didn't build".format(student=studentName)
+
+        wrkpath = "{}/{}".format(path, studentName)
+
+        os.chdir(wrkpath)
+
+        ans = "y"
+        while ans.lower()[0] == 'y':
+            #Run the program, gives it temporary control of the console
+            subprocess.call(('java', className), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+
+            print '\n'
+            ans = raw_input("Program finished, do you want to rerun it? (y/n)")
+            print
+
+    os.chdir(path)
+
+
+#end main
+
+def do_builds(path, studentslist, que):
+    for studentName, classes in studentslist:
+
+        className = classes[0]  # For now we're assuming single file java projects
+
+        wrkpath = "{}/{}".format(path, studentName)
+
+
+        with open(wrkpath + "build.log", "a") as log:  # Start logging for the build
+            #Log entry header
+            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+            log.write("Starting build of %s.java\n\n" % className)
+
+            #Make srcPath
+            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
+            srcPath = "/".join(srcPath) + '.java'
+
+            #Do build, direct output to the log
+            proc = subprocess.Popen(('javac', srcPath), stdout=log, stderr=log)
+
+            que.put((studentName, className, proc)) # Add build to queue
+
+
+def prepare_directory(path):
+    """
+    Prepares the grading directory by parsing the downloaded class files, separating them into student folders, and
+    moving the java files to the corresponding directories.
+
+    :param path: The directory to prepare
+    :rtype : Dict the key is the students name, value is a list of class names
+    """
+
+    res = {}
 
     files = os.listdir(path)
 
@@ -47,7 +125,6 @@ def main():
             [^.]+   #Matches everything until a period
         )""", re.VERBOSE)
 
-
     for f in files:
 
         #ignore dot files.
@@ -58,26 +135,25 @@ def main():
 
         # Moodle renames all submissions so they cannot be compiled as is. Luckily
         # it does include the original filename so we can paritition the string
-        # and extract the original filename from it.  From there we can cp the file 
+        # and extract the original filename from it.  From there we can cp the file
         # in order to compile and run.
 
-        ## Start author Phillip Wall
-        m = regex.search(f) #Attempt to match the filename
+        m = regex.search(f)  #Attempt to match the filename
 
         if not m:
-            continue #If there is not a match this filename does not match the expected format, skip it.
+            continue  #If there is not a match this filename does not match the expected format, skip it.
 
-        student = m.group(1) #Get the student name from the match
-        className = m.group(2) #Get the className from the match
-        tempFile = "{}/{}.java".format(path, className)
-        realFile = "{}/{}".format(path, f)
+        student = m.group(1)  #Get the student name from the match
+        className = m.group(2)  #Get the className from the match
+        destFile = "{}/{}/{}.java".format(path, student, className)
+        origFile = "{}/{}".format(path, f)
 
-        ## End author Phillip Wall
+        os.mkdir("{}/{}".format(path, student))
 
         classDeclaration = "public class " + className
 
         #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
-        with open(realFile) as fHandle:
+        with open(origFile) as fHandle:
             for line in fHandle:
                 if classDeclaration in line:
                     break
@@ -87,52 +163,17 @@ def main():
                     #1. create a new directory for the package
                     #2. Move the class file to the package directory
 
-                    #Use the string format method to create the command to move the java file -Phillip Wall
-                    cmd = 'mkdir "{path}/{package}"; mv "{path}/{name}.java" "{path}/{package}/{name}.java"'.format(
-                        path=path, name=className, package=package)
+                    destFile = "{}/{}/{}/{}.java".format(path, student, package, className)
 
-                    # cmd = ( "mkdir \"" + path + "/" + package +
-                    #         "\"; mv \"" + path + "/" + className +
-                    #         ".class\" \"" + path + "/" + package + "/" +
-                    #         className + ".class\""
-                    # )
-
-                    print cmd
-                    os.system(cmd)
                     className = package + "." + className
-            #end for line in f
 
+        shutil.copy(origFile, destFile) #Copy the java file to the destination
 
+        #Gets the class list for the student, if the student hasn't been added creates an empty list
+        #Doing it this way allows for multifile java projects
+        res.get(student, []).append(className)
 
-        print "##################################\n"
-        print student
-        print realFile + "\n\n"
-
-
-        
-        cmds = []
-        cmds.append( "cp \"" + realFile + "\" \"" + tempFile + "\"" )
-        cmds.append( "javac \"" + tempFile + "\"" )
-        cmds.append( "cd \"" + path + "\" && " + "java \"" + className + "\"" )
-
-        for c in cmds:
-            os.system(c)
-
-
-
-        raw_input("Press enter to continue...")
-
-        cmds = []
-        cmds.append( "clear" )
-        cmds.append( "rm -f " + tempFile )
-        cmds.append( "vim \"" + realFile + "\"")
-
-        for c in cmds:
-            os.system(c)
-
-        #end for f in files
-#end main
-
+    return res
 
 
 if __name__ == "__main__":
