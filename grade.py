@@ -44,7 +44,9 @@ def main():
 
     t = Thread(target=do_builds, args=(path, students.iteritems(), q))
 
-    while t.isAlive() or q.not_empty:
+    t.start()
+
+    while t.isAlive() or not q.empty():
 
         studentName, className, buildProc = q.get()
 
@@ -73,11 +75,13 @@ def main():
             print
 
     os.chdir(path)
+    t.join()
 
 
 #end main
 
 def do_builds(path, studentslist, que):
+
     for studentName, classes in studentslist:
 
         className = classes[0]  # For now we're assuming single file java projects
@@ -177,7 +181,8 @@ def prepare_directory(path):
 
         #Gets the class list for the student, if the student hasn't been added creates an empty list
         #Doing it this way allows for multifile java projects
-        res.get(student, []).append(className)
+        res.setdefault(student, []).append(className)
+
 
     return res
 
