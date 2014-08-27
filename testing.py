@@ -104,6 +104,10 @@ class RegexTester(Tester):
         with open(configfile) as f:
             for line in f:
                 line = line.strip()
+
+                if line[0] == "#":
+                    continue  # Skip comments
+
                 res = detect(line, ret)
                 if res:
                     detect = res
@@ -111,22 +115,22 @@ class RegexTester(Tester):
         return ret
 
     @classmethod
-    def _detect_name(line, d):
+    def _detect_name(cls, line, d):
         if line:
             d['name'] = line
-            return RegexTester._detect_infile
+            return cls._detect_infile
 
     @classmethod
-    def _detect_infile(self, line, d):
+    def _detect_infile(cls, line, d):
         if os.path.isfile(line):
             d['input_file'] = line
-            return RegexTester._detect_regex
+            return cls._detect_regex
 
     @classmethod
-    def _detect_regex(self, line, d):
+    def _detect_regex(cls, line, d):
         if line:
             d.setdefault('regexes', []).append(re.compile(line))
-            return RegexTester._detect_regex
+            return cls._detect_regex
 
     def score(self):
         pass
