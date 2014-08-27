@@ -13,7 +13,7 @@ import subprocess
 import zipfile
 import re
 import datetime
-import testing
+from testing import tests
 
 from threading import Thread
 from Queue import Queue
@@ -27,7 +27,7 @@ def main():
         path = str(sys.argv[1])
     #end if
 
-    tests = []
+
     path = os.path.abspath(path)  # Convert the path to an absolute path
 
     #TODO Test zip support
@@ -69,8 +69,8 @@ def main():
 
         ans = "y"
         while ans.lower()[0] == 'y':
-            if len(tests) <= 1:
-                testing.ManualTest().start(studentName, className)
+            if len(tests) == 1:
+                tests.values()[0](studentName, className).start()
 
             print '\n'
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")

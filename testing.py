@@ -1,48 +1,56 @@
 __author__ = 'phillip'
 
-import sys
+import sys, os
+
+import re
 import subprocess
 import abc
 
-testers = set()
 
-tests = {}
+testers = set() # The available test types
+
+tests = {} # The available tests
 
 class TesterMeta(abc.ABCMeta):
 
     def __init__(cls, clsname, bases, attr):
         super(TesterMeta, cls).__init__(clsname, bases, attr)
 
-        parser = cls.parse_config
+        parser = cls.parse_config # Get the classes parse config_function
 
-        @staticmethod
-        def load_config(configfile):
-            attrs = cls.__dict__.copy()
-            attrs.update(parser(configfile))
-            name = attrs['name']
-            tests[name] = type(name, (cls, ), attrs)
+        @classmethod
+        def load_config(clss, configfile):  # This will replace parse_config on the class
+            attrs = cls.__dict__.copy()  # Copy the class's dict
+            attrs.update(parser(configfile))  # Update the copy with the parsed config file
+            name = attrs['name']  # Get the tests name
+            tests[name] = type(name, (cls, ), attrs)  # Create the subclass for the test and register it
 
-        cls.parse_config = load_config
+        cls.parse_config = load_config  # Replace the class's parse_config
 
 
 class Tester(object):
     __metaclass__ = TesterMeta
 
+    def __init__(self, student, clsName):
+        self.student = student
+        self.clsName = clsName
+
     @abc.abstractmethod
-    def start(self, student, clsName):
+    def start(self):
         pass
 
     @classmethod
     def register(cls):
-        """Registers the class with the main program. A name attribute must be defined before this method
-        can be called."""
+        """Registers the class with the main program. When registered this class will be asked if it supports
+        any found configuration files."""
         testers.add(cls)
 
-    @staticmethod
+    @classmethod
     @abc.abstractmethod
-    def parse_config(configfile):
-        """Parse the configuration and return a dict. The elements in the dict will become part of self.
+    def parse_config(cls, configfile):
+        """Parse the configuration and return a dict. The elements in the dict will added to the test class's dict.
         Tester handles making the dict elements available, subclassing for the particular test, and registering the
+        :param cls:
         test. A name key should be in the dict that has the tests name."""
         return {}
 
@@ -56,14 +64,21 @@ class Tester(object):
 
     @staticmethod
     @abc.abstractmethod
-    def handlesconfig(path):
+    def handlesconfig(fd):
+        """
+        Returns true if the config in the file object is handled by this Tester.
+
+        :param fd: A file object for the config file
+        """
         return False
 
+    def failed(self):
+        return self.score() == self.possiblescore()
 
 class ManualTest(Tester):
 
-    @staticmethod
-    def parse_config(configfile):
+    @classmethod
+    def parse_config(cls, configfile):
         return {'name': configfile}
 
     def score(self):
@@ -73,11 +88,58 @@ class ManualTest(Tester):
         return 1
 
     def start(self, student, clsName):
-        subprocess.call(('java', className), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+        subprocess.call(('java', clsName), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
 
     @staticmethod
     def handlesconfig(path):
         return False
 
+class RegexTester(Tester):
 
-ManualTest.parse_config("Manual")
+    @classmethod
+    def parse_config(cls, configfile):
+        ret = {}
+
+        detect = RegexTester._detect_name
+        with open(configfile) as f:
+            for line in f:
+                line = line.strip()
+                res = detect(line, ret)
+                if res:
+                    detect = res
+
+        return ret
+
+    @classmethod
+    def _detect_name(line, d):
+        if line:
+            d['name'] = line
+            return RegexTester._detect_infile
+
+    @classmethod
+    def _detect_infile(self, line, d):
+        if os.path.isfile(line):
+            d['input_file'] = line
+            return RegexTester._detect_regex
+
+    @classmethod
+    def _detect_regex(self, line, d):
+        if line:
+            d.setdefault('regexes', []).append(re.compile(line))
+            return RegexTester._detect_regex
+
+    def score(self):
+        pass
+
+    def start(self):
+        pass
+
+    @staticmethod
+    def handlesconfig(fd):
+        return "RegexTester" in fd.readline()
+
+    def possiblescore(self):
+        pass
+
+
+ManualTest.parse_config('Manual')
