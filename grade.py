@@ -46,7 +46,9 @@ def main():
 
     t = Thread(target=do_builds, args=(path, students.iteritems(), q))
 
-    while t.isAlive() or q.not_empty:
+    t.start()
+
+    while t.isAlive() or not q.empty():
 
         studentName, className, buildProc = q.get()
 
@@ -75,11 +77,13 @@ def main():
             print
 
     os.chdir(path)
+    t.join()
 
 
 #end main
 
 def do_builds(path, studentslist, que):
+
     for studentName, classes in studentslist:
 
         className = classes[0]  # For now we're assuming single file java projects
@@ -150,7 +154,9 @@ def prepare_directory(path):
         destFile = "{}/{}/{}.java".format(path, student, className)
         origFile = "{}/{}".format(path, f)
 
-        os.mkdir("{}/{}".format(path, student))
+        studentdir = "{}/{}".format(path, student)
+        if not os.path.exists(studentdir):
+            os.mkdir(studentdir)
 
         classDeclaration = "public class " + className
 
@@ -161,11 +167,15 @@ def prepare_directory(path):
                     break
                 if "package " in line:
                     #Strip trailing ';' with strip method -Phillip Wall
-                    package = line.replace("package ", "").strip(';')
+                    package = line.replace("package ", "").strip(';\r\n')
                     #1. create a new directory for the package
                     #2. Move the class file to the package directory
+                    destdir = "{}/{}/{}".format(path, student, package)
 
-                    destFile = "{}/{}/{}/{}.java".format(path, student, package, className)
+                    if not os.path.exists(destdir):
+                        os.mkdir(destdir)
+
+                    destFile = destdir + "/%s.java" % className
 
                     className = package + "." + className
 
@@ -173,7 +183,8 @@ def prepare_directory(path):
 
         #Gets the class list for the student, if the student hasn't been added creates an empty list
         #Doing it this way allows for multifile java projects
-        res.get(student, []).append(className)
+        res.setdefault(student, []).append(className)
+
 
     return res
 
