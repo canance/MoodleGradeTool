@@ -89,7 +89,7 @@ def do_builds(path, studentslist, que):
         wrkpath = "{}/{}".format(path, studentName)
 
 
-        with open(wrkpath + "build.log", "a") as log:  # Start logging for the build
+        with open(wrkpath + "/build.log", "a") as log:  # Start logging for the build
             #Log entry header
             log.write('\n\n' + str(datetime.datetime.now()) + '\n')
             log.write("Starting build of %s.java\n\n" % className)
