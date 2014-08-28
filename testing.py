@@ -31,9 +31,12 @@ class TesterMeta(abc.ABCMeta):
 class Tester(object):
     __metaclass__ = TesterMeta
 
+    cwd = '.'
+
     def __init__(self, student, clsName):
         self.student = student
         self.clsName = clsName
+        self.cwd = self.cwd.format(student=student, cls=clsName)
 
     @abc.abstractmethod
     def start(self):
@@ -87,8 +90,8 @@ class ManualTest(Tester):
     def possiblescore(self):
         return 1
 
-    def start(self, student, clsName):
-        subprocess.call(('java', clsName), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+    def start(self):
+        subprocess.call(('java', self.clsName), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=self.cwd)
 
     @staticmethod
     def handlesconfig(path):
@@ -100,50 +103,57 @@ class RegexTester(Tester):
     def parse_config(cls, configfile):
         ret = {}
 
-        detect = RegexTester._detect_name
+        detectors = (cls._detect_name, cls._detect_infile,  cls._detect_regex)
         with open(configfile) as f:
             for line in f:
                 line = line.strip()
 
-                if line[0] == "#":
+                if line and line[0] == "#":
                     continue  # Skip comments
-
-                res = detect(line, ret)
-                if res:
-                    detect = res
+                for func in detectors:
+                    if func(line, ret):
+                        break
 
         return ret
 
     @classmethod
     def _detect_name(cls, line, d):
-        if line:
+        if line and not d.has_key('name'):
             d['name'] = line
-            return cls._detect_infile
+            return True
 
     @classmethod
     def _detect_infile(cls, line, d):
-        if os.path.isfile(line):
+        if (not d.has_key('input_file')) and os.path.isfile(line):
             d['input_file'] = line
-            return cls._detect_regex
+            return True
 
     @classmethod
     def _detect_regex(cls, line, d):
-        if line:
+        if line and line[:7] == "Regex: ":
+            line = line[6:]
             d.setdefault('regexes', []).append(re.compile(line))
-            return cls._detect_regex
+            return True
 
     def score(self):
-        pass
+        return self._score
 
     def start(self):
-        pass
+        self._score = 0
+        with open(self.input_file) as f:
+            self._output = subprocess.check_output(('java', self.clsName), stdin=f, cwd=self.cwd)
+
+        for reg in self.regexes:
+            m = reg.search(self._output)
+            if m:
+                self._score += 1
 
     @staticmethod
     def handlesconfig(fd):
         return "RegexTester" in fd.readline()
 
     def possiblescore(self):
-        pass
+        return len(self.regexes)
 
 
 ManualTest.parse_config('Manual')

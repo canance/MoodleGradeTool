@@ -13,7 +13,7 @@ import subprocess
 import zipfile
 import re
 import datetime
-from testing import tests
+from testing import tests, testers
 
 from threading import Thread
 from Queue import Queue
@@ -39,6 +39,14 @@ def main():
             z.extractall(path=path[:-4])  # Extract the files
 
         path = path[:-4]  # Set path to newly created directory
+
+    for file in os.listdir(path):
+        if file.endswith(".test"):
+            with open(path + '/' + file, 'r') as f:
+                for tester in testers:
+                    if tester.handlesconfig(f):
+                        tester.parse_config(path+'/'+f)
+                        break
 
     students = prepare_directory(path)
 

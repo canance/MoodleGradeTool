@@ -1,0 +1,11 @@
+#RegexTester
+
+sample
+
+./Sample Configs/infile
+
+Regex: pass
+
+Regex: test | er
+
+Regex: regex
