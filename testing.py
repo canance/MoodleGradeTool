@@ -7,9 +7,9 @@ import subprocess
 import abc
 
 
-testers = set() # The available test types
+testers = set()  # The available test types
 
-tests = {} # The available tests
+tests = {}  # The available tests
 
 class TesterMeta(abc.ABCMeta):
 
@@ -53,16 +53,26 @@ class Tester(object):
     def parse_config(cls, configfile):
         """Parse the configuration and return a dict. The elements in the dict will added to the test class's dict.
         Tester handles making the dict elements available, subclassing for the particular test, and registering the
-        :param cls:
-        test. A name key should be in the dict that has the tests name."""
+        test. A name key should be in the dict that has the tests name.
+
+        :param configfile: The path of the configuration file to parse
+        """
         return {}
 
     @abc.abstractmethod
     def score(self):
+        """
+        The score the program got.
+        :rtype: int
+        """
         pass
 
     @abc.abstractmethod
     def possible(self):
+        """
+        The possible score on this test.
+        :rtype: int
+        """
         pass
 
     @staticmethod
@@ -71,6 +81,7 @@ class Tester(object):
         """
         Returns true if the config in the file object is handled by this Tester.
 
+        :rtype : bool
         :param fd: A file object for the config file
         """
         return False
@@ -136,6 +147,11 @@ class RegexTester(Tester):
             return True
 
     def output(self):
+        """
+        :returns: The output from the last run
+        :raises: AttributeError if called before start has been called.
+        :rtype: String
+        """
         return self._output
 
     def score(self):
@@ -143,13 +159,17 @@ class RegexTester(Tester):
 
     def start(self):
         self._score = 0
-        with open(self.input_file) as f:
-            self._output = subprocess.check_output(('java', self.clsName), stdin=f, stderr=subprocess.STDOUT, cwd=self.cwd)
 
+        #Call the java program with the input file set to stdin
+        #Keep the output
+        with open(self.input_file) as f:
+            self._output = subprocess.check_output(('java', self.clsName), stdin=f,
+                                                   stderr=subprocess.STDOUT, cwd=self.cwd)
+        #Run all the detected regexes against the output
         for reg in self.regexes:
             m = reg.search(self._output)
             if m:
-                self._score += 1
+                self._score += 1  # And count how many matches we got.
 
     @staticmethod
     def handlesconfig(fd):

@@ -39,57 +39,72 @@ def main():
 
         path = path[:-4]  # Set path to newly created directory
 
-    os.chdir(path)
+    os.chdir(path)  # Change the working directory to the grading directory
 
     for file in os.listdir(path):
-        if file.endswith(".test"):
-            with open(path + '/' + file, 'r') as f:
+        if file.endswith(".test"):  # Find the files that end with .test in the grading dir
+            with open(path + '/' + file, 'r') as f:  # Open the file
                 for tester in testers:
-                    if tester.handlesconfig(f):
-                        tester.parse_config(path+'/'+file)
+                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
+                        tester.parse_config(path+'/'+file)  # If they do, give them the file path to parse
                         break
+                    else:
+                        f.seek(0)  # Need to reset the file position for next check
 
-    students = prepare_directory(path)
+    students = prepare_directory(path)  # Prepare the grading directory
 
-    q = Queue(maxsize=MAX_BUILDS)
+    q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, students.iteritems(), q))
+    t = Thread(target=do_builds, args=(path, students.iteritems(), q))  # Set up the building thread
 
     t.start()
 
+    #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
 
+        #Get the information about the next program in the list
         studentName, className, buildProc = q.get()
 
+        #Print out the information
         print "#" * 35, '\n'
         print studentName
         print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
 
+        #Wait for the build to finish
         if not buildProc.poll():
             print "Wating for build to finish..."
             buildProc.wait()
 
+        #Continue to the next one if this one didn't build
         if buildProc.returncode != 0:
             print "{student}'s project didn't build".format(student=studentName)
+            continue
 
+        #Change the working path to the student's directory
         wrkpath = "{}/{}".format(path, studentName)
 
         os.chdir(wrkpath)
 
         ans = "y"
-        while ans and ans.lower()[0] == 'y':
+        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
+
+            #If there is only one test run it, otherwise ask which one to run
             if len(tests) == 1:
                 key = tests.keys()[0]
             else:
                 key = select_test()
 
+            #Initalize the test then start it
             test = tests[key](studentName, className)
 
             print "Running test %s..." % key
             test.start()
 
             print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
+
+            #Determine if this test supports providing output
             if hasattr(test, 'output'):
+                #And see if the user wants to do anything with it
                 sel = raw_input("The test has output available. ([s]ave, [v]iew, [i]gnore)").lower()
 
                 if sel == 'v':
@@ -110,9 +125,15 @@ def main():
     t.join()
 
 
+
+
 #end main
 
 def select_test():
+    """Will prompt the user for the test they want to run.
+    Returns the key of the test they selected.
+    :rtype : string
+    """
     keys = tests.keys()
 
     while True:
@@ -165,9 +186,10 @@ def prepare_directory(path):
     """
     Prepares the grading directory by parsing the downloaded class files, separating them into student folders, and
     moving the java files to the corresponding directories.
+    Returns a dict with the students name as the key, and list of java classes as the value.
 
     :param path: The directory to prepare
-    :rtype : Dict the key is the students name, value is a list of class names
+    :rtype : Dict
     """
 
     res = {}
