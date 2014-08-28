@@ -62,7 +62,7 @@ class Tester(object):
         pass
 
     @abc.abstractmethod
-    def possiblescore(self):
+    def possible(self):
         pass
 
     @staticmethod
@@ -76,7 +76,7 @@ class Tester(object):
         return False
 
     def failed(self):
-        return self.score() == self.possiblescore()
+        return self.score() == self.possible()
 
 class ManualTest(Tester):
 
@@ -87,7 +87,7 @@ class ManualTest(Tester):
     def score(self):
         return 1
 
-    def possiblescore(self):
+    def possible(self):
         return 1
 
     def start(self):
@@ -125,7 +125,7 @@ class RegexTester(Tester):
     @classmethod
     def _detect_infile(cls, line, d):
         if (not d.has_key('input_file')) and os.path.isfile(line):
-            d['input_file'] = line
+            d['input_file'] = os.path.abspath(line)
             return True
 
     @classmethod
@@ -135,13 +135,16 @@ class RegexTester(Tester):
             d.setdefault('regexes', []).append(re.compile(line))
             return True
 
+    def output(self):
+        return self._output
+
     def score(self):
         return self._score
 
     def start(self):
         self._score = 0
         with open(self.input_file) as f:
-            self._output = subprocess.check_output(('java', self.clsName), stdin=f, cwd=self.cwd)
+            self._output = subprocess.check_output(('java', self.clsName), stdin=f, stderr=subprocess.STDOUT, cwd=self.cwd)
 
         for reg in self.regexes:
             m = reg.search(self._output)
@@ -152,8 +155,10 @@ class RegexTester(Tester):
     def handlesconfig(fd):
         return "RegexTester" in fd.readline()
 
-    def possiblescore(self):
+    def possible(self):
         return len(self.regexes)
 
 
 ManualTest.parse_config('Manual')
+
+RegexTester.register()

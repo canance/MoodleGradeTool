@@ -30,7 +30,6 @@ def main():
 
     path = os.path.abspath(path)  # Convert the path to an absolute path
 
-    #TODO Test zip support
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
@@ -40,12 +39,14 @@ def main():
 
         path = path[:-4]  # Set path to newly created directory
 
+    os.chdir(path)
+
     for file in os.listdir(path):
         if file.endswith(".test"):
             with open(path + '/' + file, 'r') as f:
                 for tester in testers:
                     if tester.handlesconfig(f):
-                        tester.parse_config(path+'/'+f)
+                        tester.parse_config(path+'/'+file)
                         break
 
     students = prepare_directory(path)
@@ -76,11 +77,32 @@ def main():
         os.chdir(wrkpath)
 
         ans = "y"
-        while ans.lower()[0] == 'y':
+        while ans and ans.lower()[0] == 'y':
             if len(tests) == 1:
-                tests.values()[0](studentName, className).start()
+                key = tests.keys()[0]
+            else:
+                key = select_test()
 
-            print '\n'
+            test = tests[key](studentName, className)
+
+            print "Running test %s..." % key
+            test.start()
+
+            print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
+            if hasattr(test, 'output'):
+                sel = raw_input("The test has output available. ([s]ave, [v]iew, [i]gnore)").lower()
+
+                if sel == 'v':
+                    print test.output()
+                    sel = raw_input("Would you like to save it? (y/n)").lower()
+                    sel = 's' if sel == 'y' else 'i'
+
+                if sel == 's':
+                    with open(key + "_output.log") as f:
+                        f.write(test.output)
+                    print "Output saved to " + key + "_output.log"
+
+            print
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")
             print
 
@@ -89,6 +111,31 @@ def main():
 
 
 #end main
+
+def select_test():
+    keys = tests.keys()
+
+    while True:
+        print
+        sel = raw_input("Which test would you like to run? (l to list)")
+
+        if sel.lower() == 'l':
+            print_numbered(keys)
+            continue
+
+        try:
+            sel = int(sel)
+        except ValueError:
+            sel = 0
+
+        if 0 < sel <= len(keys):
+            return keys[sel-1]
+
+        print "Invalid test number"
+
+def print_numbered(l):
+    for i in xrange(len(l)):
+        print str(i+1) + ". " + str(l[i])
 
 def do_builds(path, studentslist, que):
 
