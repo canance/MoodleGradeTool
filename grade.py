@@ -13,6 +13,7 @@ import subprocess
 import zipfile
 import re
 import datetime
+from testing import tests, testers
 
 from threading import Thread
 from Queue import Queue
@@ -26,9 +27,9 @@ def main():
         path = str(sys.argv[1])
     #end if
 
+
     path = os.path.abspath(path)  # Convert the path to an absolute path
 
-    #TODO Test zip support
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
@@ -38,39 +39,85 @@ def main():
 
         path = path[:-4]  # Set path to newly created directory
 
-    students = prepare_directory(path)
+    os.chdir(path)  # Change the working directory to the grading directory
 
-    q = Queue(maxsize=MAX_BUILDS)
+    for file in os.listdir(path):
+        if file.endswith(".test"):  # Find the files that end with .test in the grading dir
+            with open(path + '/' + file, 'r') as f:  # Open the file
+                for tester in testers:
+                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
+                        tester.parse_config(path+'/'+file)  # If they do, give them the file path to parse
+                        break
+                    else:
+                        f.seek(0)  # Need to reset the file position for next check
 
-    t = Thread(target=do_builds, args=(path, students.iteritems(), q))
+    students = prepare_directory(path)  # Prepare the grading directory
+
+    q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
+
+    t = Thread(target=do_builds, args=(path, students.iteritems(), q))  # Set up the building thread
 
     t.start()
 
+    #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
 
+        #Get the information about the next program in the list
         studentName, className, buildProc = q.get()
 
+        #Print out the information
         print "#" * 35, '\n'
         print studentName
         print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
 
+        #Wait for the build to finish
         if not buildProc.poll():
             print "Wating for build to finish..."
             buildProc.wait()
 
+        #Continue to the next one if this one didn't build
         if buildProc.returncode != 0:
             print "{student}'s project didn't build".format(student=studentName)
+            continue
 
+        #Change the working path to the student's directory
         wrkpath = "{}/{}".format(path, studentName)
 
         os.chdir(wrkpath)
 
         ans = "y"
-        while ans.lower()[0] == 'y':
-            #Run the program, gives it temporary control of the console
-            subprocess.call(('java', className), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
 
-            print '\n'
+            #If there is only one test run it, otherwise ask which one to run
+            if len(tests) == 1:
+                key = tests.keys()[0]
+            else:
+                key = select_test()
+
+            #Initalize the test then start it
+            test = tests[key](studentName, className)
+
+            print "Running test %s..." % key
+            test.start()
+
+            print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
+
+            #Determine if this test supports providing output
+            if hasattr(test, 'output'):
+                #And see if the user wants to do anything with it
+                sel = raw_input("The test has output available. ([s]ave, [v]iew, [i]gnore)").lower()
+
+                if sel == 'v':
+                    print test.output()
+                    sel = raw_input("Would you like to save it? (y/n)").lower()
+                    sel = 's' if sel == 'y' else 'i'
+
+                if sel == 's':
+                    with open(key + "_output.log") as f:
+                        f.write(test.output)
+                    print "Output saved to " + key + "_output.log"
+
+            print
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")
             print
 
@@ -78,7 +125,38 @@ def main():
     t.join()
 
 
+
+
 #end main
+
+def select_test():
+    """Will prompt the user for the test they want to run.
+    Returns the key of the test they selected.
+    :rtype : string
+    """
+    keys = tests.keys()
+
+    while True:
+        print
+        sel = raw_input("Which test would you like to run? (l to list)")
+
+        if sel.lower() == 'l':
+            print_numbered(keys)
+            continue
+
+        try:
+            sel = int(sel)
+        except ValueError:
+            sel = 0
+
+        if 0 < sel <= len(keys):
+            return keys[sel-1]
+
+        print "Invalid test number"
+
+def print_numbered(l):
+    for i in xrange(len(l)):
+        print str(i+1) + ". " + str(l[i])
 
 def do_builds(path, studentslist, que):
 
@@ -89,7 +167,7 @@ def do_builds(path, studentslist, que):
         wrkpath = "{}/{}".format(path, studentName)
 
 
-        with open(wrkpath + "build.log", "a") as log:  # Start logging for the build
+        with open(wrkpath + "/build.log", "a") as log:  # Start logging for the build
             #Log entry header
             log.write('\n\n' + str(datetime.datetime.now()) + '\n')
             log.write("Starting build of %s.java\n\n" % className)
@@ -108,9 +186,10 @@ def prepare_directory(path):
     """
     Prepares the grading directory by parsing the downloaded class files, separating them into student folders, and
     moving the java files to the corresponding directories.
+    Returns a dict with the students name as the key, and list of java classes as the value.
 
     :param path: The directory to prepare
-    :rtype : Dict the key is the students name, value is a list of class names
+    :rtype : Dict
     """
 
     res = {}
