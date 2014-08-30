@@ -5,6 +5,8 @@
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
 ##########################################################################
 
+import cliforms
+
 import os
 import sys
 import shutil
@@ -129,30 +131,20 @@ def main():
 
 #end main
 
+@cliforms.forms
 def select_test():
     """Will prompt the user for the test they want to run.
     Returns the key of the test they selected.
     :rtype : string
     """
+
     keys = tests.keys()
+    f = cliforms.TestsSelector()
+    f.edit()
 
-    while True:
-        print
-        sel = raw_input("Which test would you like to run? (l to list)")
+    return keys(f.selector.value)
 
-        if sel.lower() == 'l':
-            print_numbered(keys)
-            continue
 
-        try:
-            sel = int(sel)
-        except ValueError:
-            sel = 0
-
-        if 0 < sel <= len(keys):
-            return keys[sel-1]
-
-        print "Invalid test number"
 
 def print_numbered(l):
     for i in xrange(len(l)):
