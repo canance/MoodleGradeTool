@@ -132,7 +132,7 @@ def main():
 #end main
 
 @cliforms.forms
-def select_test():
+def select_test(*args):
     """Will prompt the user for the test they want to run.
     Returns the key of the test they selected.
     :rtype : string
@@ -141,8 +141,12 @@ def select_test():
     keys = tests.keys()
     f = cliforms.TestsSelector()
     f.edit()
+    index = 0 if not len(f.selector.value) else f.selector.value[0]
+    return keys[index]
 
-    return keys(f.selector.value)
+@cliforms.forms
+def process_tests(stdscr, tests):
+    pass
 
 
 
