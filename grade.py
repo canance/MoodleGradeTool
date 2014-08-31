@@ -13,6 +13,7 @@ import subprocess
 import zipfile
 import re
 import datetime
+import student
 from testing import tests, testers
 
 from threading import Thread
@@ -50,6 +51,8 @@ def main():
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
+
+    student.Student.tests = tests.values()
 
     students = prepare_directory(path)  # Prepare the grading directory
 
@@ -226,12 +229,12 @@ def prepare_directory(path):
         if not m:
             continue  #If there is not a match this filename does not match the expected format, skip it.
 
-        student = m.group(1)  #Get the student name from the match
+        studentname = m.group(1)  #Get the student name from the match
         className = m.group(2)  #Get the className from the match
-        destFile = "{}/{}/{}.java".format(path, student, className)
+        destFile = "{}/{}/{}.java".format(path, studentname, className)
         origFile = "{}/{}".format(path, f)
 
-        studentdir = "{}/{}".format(path, student)
+        studentdir = "{}/{}".format(path, studentname)
         if not os.path.exists(studentdir):
             os.mkdir(studentdir)
 
@@ -247,7 +250,7 @@ def prepare_directory(path):
                     package = line.replace("package ", "").strip(';\r\n')
                     #1. create a new directory for the package
                     #2. Move the class file to the package directory
-                    destdir = "{}/{}/{}".format(path, student, package)
+                    destdir = "{}/{}/{}".format(path, studentname, package)
 
                     if not os.path.exists(destdir):
                         os.mkdir(destdir)
@@ -260,7 +263,7 @@ def prepare_directory(path):
 
         #Gets the class list for the student, if the student hasn't been added creates an empty list
         #Doing it this way allows for multifile java projects
-        res.setdefault(student, []).append(className)
+        res.setdefault(studentname, []).append(className)
 
 
     return res
