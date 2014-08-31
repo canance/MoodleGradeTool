@@ -1,21 +1,23 @@
 __author__ = 'phillip'
-#Requires enum34 from python package index
+# Requires enum34 from python package index
 
 import subprocess
 from enum import Enum
+
 
 class Student(object):
     tests = []
 
     def __init__(self, name, main_class, otherclasses=None):
-        self.student = name
+        self.name = name
         self.java_class = main_class
-        self.classlist= otherclasses if not otherclasses is None else []
+        self.classlist = otherclasses if not otherclasses is None else []
+        self.directory = os.path.abspath('./' + name)
 
         for i in xrange(len(self.tests)):
             self.tests[i] = self.tests[i](name, main_class)
 
-        self._state = StudentState.not_tested
+        self._state = StudentState.not_built
 
     def dotests(self):
         self._state = StudentState.testing
@@ -24,8 +26,24 @@ class Student(object):
 
         self._state = StudentState.ready
 
+    def dotest(self, cls):
+        for test in self.tests:
+            if isinstance(test, cls):
+                test.start()
+            else:
+                t = cls(self.name, self.java_class)
+                self.tests.append(t)
+                t.start()
+
     def dobuild(self):
-        self.proc = subprocess.Popen(('javac', "/".join(self.java_class.split(",")) + ".java"))
+        self._state = StudentState.building
+        with open(self.directory + "/build.log", 'a') as f:
+            #Log entry header
+            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+            log.write("Starting build of %s.java\n\n" % className)
+
+            self.proc = subprocess.Popen(('javac', '.' + "/".join(self.java_class.split(",")) + ".java"),
+                                         cwd=self.directory, stdout=f, stderr=subprocess.STDOUT)
 
     @property
     def score(self):
@@ -44,7 +62,13 @@ class Student(object):
 
         :rtype: StudentState
         """
-        return self.state
+        if self._state == StudentState.building and not self.proc.poll() is None:
+            if self.proc.returncode == 0:
+                self._state = StudentState.not_tested
+            else:
+                self._state = StudentState.build_error
+
+        return self._state
 
 
 class StudentState(Enum):

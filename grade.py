@@ -42,26 +42,35 @@ def main():
 
     os.chdir(path)  # Change the working directory to the grading directory
 
-    for file in os.listdir(path):
-        if file.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(path + '/' + file, 'r') as f:  # Open the file
+    for filename in os.listdir(path):
+        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
+            with open(path + '/' + filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(path+'/'+file)  # If they do, give them the file path to parse
+                        tester.parse_config(path+'/'+filename)  # If they do, give them the file path to parse
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
 
-    student.Student.tests = tests.values()
+    #TODO Filter out manual
+    if not len(tests) == 1:
+        student.Student.tests = tests.values()
 
     students = prepare_directory(path)  # Prepare the grading directory
 
+    tmp = []
+    #TODO Eliminate need for this block
+    for name, cl in students.iteritems():
+        main = cl.pop(0)  # Assume first class is the main one
+        tmp.append(student.Student(name, main, cl))
+
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, students.iteritems(), q))  # Set up the building thread
+    t = Thread(target=do_builds, args=(path, tmp, q))  # Set up the building thread
 
     t.start()
 
+    #TODO Make this work with student objects (Will not work currently)
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
 
@@ -163,26 +172,11 @@ def print_numbered(l):
 
 def do_builds(path, studentslist, que):
 
-    for studentName, classes in studentslist:
+    for student in studentslist:
 
-        className = classes[0]  # For now we're assuming single file java projects
+        student.dobuild()
 
-        wrkpath = "{}/{}".format(path, studentName)
-
-
-        with open(wrkpath + "/build.log", "a") as log:  # Start logging for the build
-            #Log entry header
-            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
-            log.write("Starting build of %s.java\n\n" % className)
-
-            #Make srcPath
-            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
-            srcPath = "/".join(srcPath) + '.java'
-
-            #Do build, direct output to the log
-            proc = subprocess.Popen(('javac', srcPath), stdout=log, stderr=log)
-
-            que.put((studentName, className, proc)) # Add build to queue
+        que.put(student)
 
 
 def prepare_directory(path):
@@ -228,6 +222,7 @@ def prepare_directory(path):
 
         if not m:
             continue  #If there is not a match this filename does not match the expected format, skip it.
+
 
         studentname = m.group(1)  #Get the student name from the match
         className = m.group(2)  #Get the className from the match
