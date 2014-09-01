@@ -59,7 +59,7 @@ class Tester(object):
         """
         return {}
 
-    @abc.abstractmethod
+    @abc.abstractproperty
     def score(self):
         """
         The score the program got.
@@ -67,7 +67,7 @@ class Tester(object):
         """
         pass
 
-    @abc.abstractmethod
+    @abc.abstractproperty
     def possible(self):
         """
         The possible score on this test.
@@ -94,10 +94,11 @@ class ManualTest(Tester):
     @classmethod
     def parse_config(cls, configfile):
         return {'name': configfile}
-
+    @property
     def score(self):
         return 1
 
+    @property
     def possible(self):
         return 1
 
