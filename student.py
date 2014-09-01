@@ -21,7 +21,7 @@ def requirestate(state):
     def decorator(func):
         def checkstate(self, *args, **kwargs):
             try:
-                #I attempted to do a simple in/is comparison here, but it wasn't working so I had to compare names
+                #I attempted to do a simple in/is comparison here, but it wasn't working so I had to compare values
                 try:
                     val = False
                     for s in state:
@@ -37,6 +37,7 @@ def requirestate(state):
         return checkstate
 
     return decorator
+
 
 class Student(object):
     tests = []
@@ -121,6 +122,12 @@ class Student(object):
                 self._state = StudentState.build_error
 
         return self._state
+
+    def __repr__(self):
+        return "Student({}, {})".format(self.name, self.java_class)
+
+    def __str__(self):
+        return self.name + ": " + self.java_class
 
 
 class StudentState(Enum):
