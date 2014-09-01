@@ -7,6 +7,36 @@ import datetime
 
 from enum import Enum
 
+class StateError(Exception):
+    pass
+
+#Needs to be defined here so its ready when Student is being interpreted
+def requirestate(state):
+    """
+    Decorator: Requires the object be in a certain state before the function can be run. An iterable can be passed
+    in which case the objects state needs to match any of the elements.
+
+    :param state: The state that needs to be matched
+    """
+    def decorator(func):
+        def checkstate(self, *args, **kwargs):
+            try:
+                #I attempted to do a simple in/is comparison here, but it wasn't working so I had to compare names
+                try:
+                    val = False
+                    for s in state:
+                        print s, val
+                        val = s.value == self.state.value or val
+                    assert val
+                except TypeError:
+                    assert self.state.value == state.value
+            except AssertionError as ex:
+                raise StateError("{obj} is not in {state} state(s)".format(obj=repr(self), state=str(state)))
+            return func(self, *args, **kwargs)
+
+        return checkstate
+
+    return decorator
 
 class Student(object):
     tests = []
@@ -26,6 +56,7 @@ class Student(object):
 
         self._state = StudentState.not_built  # Set the state
 
+    @requirestate((StudentState.not_tested, StudentState.ready))
     def dotests(self):
         """Performs all the tests registered with this student."""
 
@@ -35,6 +66,7 @@ class Student(object):
 
         self._state = StudentState.ready
 
+    @requirestate((StudentState.not_tested, StudentState.ready))
     def dotest(self, cls):
         """
         Performs a specific test. Adds the test to the students test list if not there already.
@@ -50,6 +82,7 @@ class Student(object):
             self.tests.append(t)  # And add it to tests
         t.start()  # Start it
 
+    @requirestate(StudentState.not_built)
     def dobuild(self):
         """
         Builds the program.
@@ -65,6 +98,7 @@ class Student(object):
                                          cwd=self.directory, stdout=log, stderr=subprocess.STDOUT)
 
     @property
+    @requirestate(StudentState.ready)
     def score(self):
         """
         Calculates the students score
