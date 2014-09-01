@@ -102,7 +102,7 @@ def main():
             print "Running test %s..." % key
             test.start()
 
-            print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
+            print "\nThe program got a score of {score}/{possible}".format(score=test.score, possible=test.possible)
 
             #Determine if this test supports providing output
             if hasattr(test, 'output'):
