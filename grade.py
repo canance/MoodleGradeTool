@@ -9,10 +9,8 @@ import os
 import sys
 import shutil
 
-import subprocess
 import zipfile
 import re
-import datetime
 import student
 from testing import tests, testers
 
@@ -20,6 +18,7 @@ from threading import Thread
 from Queue import Queue
 
 MAX_BUILDS = 5
+
 
 def main():
     if len(sys.argv) < 2:
@@ -52,9 +51,9 @@ def main():
                     else:
                         f.seek(0)  # Need to reset the file position for next check
 
-    #TODO Filter out manual
+    student.Student.tests = tests.values()
     if not len(tests) == 1:
-        student.Student.tests = tests.values()
+        student.Student.tests.remove(tests['Manual'])
 
     students = prepare_directory(path)  # Prepare the grading directory
 
@@ -70,49 +69,41 @@ def main():
 
     t.start()
 
-    #TODO Make this work with student objects (Will not work currently)
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
 
         #Get the information about the next program in the list
-        studentName, className, buildProc = q.get()
+        currentstudent = q.get()
+        assert isinstance(currentstudent, student.Student)
 
         #Print out the information
         print "#" * 35, '\n'
-        print studentName
-        print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
+        print currentstudent.name
+        print "{path}/{student}/{cls}.java".format(path=path, student=currentstudent.name,
+                                                   cls=currentstudent.java_class)
 
-        #Wait for the build to finish
-        if not buildProc.poll():
-            print "Wating for build to finish..."
-            buildProc.wait()
+        if currentstudent.state == student.StudentState.building:
+            print "Waiting for build to finish..."
+            currentstudent.proc.wait()
 
-        #Continue to the next one if this one didn't build
-        if buildProc.returncode != 0:
-            print "{student}'s project didn't build".format(student=studentName)
+        if currentstudent.state == student.StudentState.build_error:
+            print "There was a problem during build, check the build.log in the students folder."
             continue
 
         #Change the working path to the student's directory
-        wrkpath = "{}/{}".format(path, studentName)
+        wrkpath = "{}/{}".format(path, currentstudent.name)
 
         os.chdir(wrkpath)
 
-        ans = "y"
-        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
-
-            #If there is only one test run it, otherwise ask which one to run
-            if len(tests) == 1:
-                key = tests.keys()[0]
-            else:
-                key = select_test()
-
-            #Initalize the test then start it
-            test = tests[key](studentName, className)
-
-            print "Running test %s..." % key
+        #TODO Update this block to use the proper Student testing mechanism
+        #NOTE The structure of this block will probably change significantly once pynscreen is done
+        possible = 0
+        for test in currentstudent.tests:
+            print "Running test %s..." % test.name
             test.start()
-
-            print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
+            possible += test.possible
+            print "\nThe program got a score of {score}/{possible}".format(score=test.score,
+                                                                           possible=test.possible)
 
             #Determine if this test supports providing output
             if hasattr(test, 'output'):
@@ -125,11 +116,19 @@ def main():
                     sel = 's' if sel == 'y' else 'i'
 
                 if sel == 's':
-                    with open(key + "_output.log") as f:
-                        f.write(test.output)
-                    print "Output saved to " + key + "_output.log"
+                    with open(test.name + "_output.log", 'w') as f:
+                        f.write(test.output())
 
+                    print "Output saved to " + test.name + "_output.log"
+
+        print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
+                                                                       possible=test.possible)
+
+        ans = raw_input("Do you want to interact with the program? (y/n)")
+
+        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
             print
+            currentstudent.dotest(tests['Manual'])
             ans = raw_input("Program finished, do you want to rerun it? (y/n)")
             print
 
@@ -141,42 +140,14 @@ def main():
 
 #end main
 
-def select_test():
-    """Will prompt the user for the test they want to run.
-    Returns the key of the test they selected.
-    :rtype : string
-    """
-    keys = tests.keys()
-
-    while True:
-        print
-        sel = raw_input("Which test would you like to run? (l to list)")
-
-        if sel.lower() == 'l':
-            print_numbered(keys)
-            continue
-
-        try:
-            sel = int(sel)
-        except ValueError:
-            sel = 0
-
-        if 0 < sel <= len(keys):
-            return keys[sel-1]
-
-        print "Invalid test number"
-
 def print_numbered(l):
     for i in xrange(len(l)):
         print str(i+1) + ". " + str(l[i])
 
 def do_builds(path, studentslist, que):
-
-    for student in studentslist:
-
-        student.dobuild()
-
-        que.put(student)
+    for curstudent in studentslist:
+        curstudent.dobuild()
+        que.put(curstudent)
 
 
 def prepare_directory(path):

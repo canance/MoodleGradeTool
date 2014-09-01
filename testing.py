@@ -154,6 +154,7 @@ class RegexTester(Tester):
         """
         return self._output
 
+    @property
     def score(self):
         return self._score
 
@@ -175,6 +176,7 @@ class RegexTester(Tester):
     def handlesconfig(fd):
         return "RegexTester" in fd.readline()
 
+    @property
     def possible(self):
         return len(self.regexes)
 
