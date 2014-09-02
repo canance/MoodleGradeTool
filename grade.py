@@ -21,6 +21,7 @@ from Queue import Queue
 
 MAX_BUILDS = 5
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
     if len(sys.argv) < 2:
@@ -53,9 +54,10 @@ def main():
                     else:
                         f.seek(0)  # Need to reset the file position for next check
 
-    student.Student.tests = tests.values()
-    if not len(tests) == 1:
-        student.Student.tests.remove(tests['Manual'])
+    tkeys = select_test()
+    tlist = [tests[key] for key in tkeys]
+    print tlist
+    student.Student.tests = tlist
 
     students = prepare_directory(path)  # Prepare the grading directory
 
@@ -103,7 +105,7 @@ def main():
                                                                                      test=test.name)
 
         print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
-                                                                       possible=test.possible)
+                                                                       possible=possible)
         for test in currentstudent.tests:
             #Determine if this test supports providing output
             if hasattr(test, 'output'):
@@ -147,8 +149,8 @@ def select_test(*args):
     keys = tests.keys()
     f = cliforms.TestsSelector()
     f.edit()
-    index = 0 if not len(f.selector.value) else f.selector.value[0]
-    return keys[index]
+    indexes = [0] if not len(f.selector.value) else f.selector.value
+    return [keys[i] for i in indexes]
 
 @cliforms.forms
 def process_tests(stdscr, tests):

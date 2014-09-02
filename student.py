@@ -119,6 +119,15 @@ class Student(object):
         return reduce(lambda scr, test: scr + test.score, self.tests, 0)
 
     @property
+    def possible(self):
+        """
+        Calculates the students possible score
+        :return: The total possible score for all the tests
+        :rtype: int
+        """
+        return reduce(lambda scr, test: scr + test.possible, self.tests, 0)
+
+    @property
     def state(self):
         """
         The state the student object is in.

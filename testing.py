@@ -160,7 +160,7 @@ class RegexTester(Tester):
     def score(self):
         return self._score
 
-    @property
+
     def start(self):
         self._score = 0
 
