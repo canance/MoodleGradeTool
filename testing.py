@@ -179,6 +179,7 @@ class RegexTester(Tester):
     def handlesconfig(fd):
         return "RegexTester" in fd.readline()
 
+    @property
     def possible(self):
         return len(self.regexes)
 
