@@ -7,8 +7,10 @@ import datetime
 
 from enum import Enum
 
+
 class StateError(Exception):
     pass
+
 
 #Needs to be defined here so its ready when Student is being interpreted
 def requirestate(state):
@@ -25,7 +27,6 @@ def requirestate(state):
                 try:
                     val = False
                     for s in state:
-                        print s, val
                         val = s.value == self.state.value or val
                     assert val
                 except TypeError:
@@ -37,6 +38,15 @@ def requirestate(state):
         return checkstate
 
     return decorator
+
+
+class StudentState(Enum):
+    not_built = 0  # The program has not been build yet
+    building = 1  # The program is in the process of building
+    build_error = -1  # There was a problem during building
+    not_tested = 2  # The program built ok, but has not been tested yet
+    testing = 3  # The program is in the process of being tested
+    ready = 4  # The program has been tested
 
 
 class Student(object):
@@ -128,13 +138,3 @@ class Student(object):
 
     def __str__(self):
         return self.name + ": " + self.java_class
-
-
-class StudentState(Enum):
-    not_built = 0  # The program has not been build yet
-    building = 1  # The program is in the process of building
-    build_error = -1  # There was a problem during building
-    not_tested = 2  # The program built ok, but has not been tested yet
-    testing = 3  # The program is in the process of being tested
-    ready = 4  # The program has been tested
-

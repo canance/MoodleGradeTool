@@ -57,15 +57,9 @@ def main():
 
     students = prepare_directory(path)  # Prepare the grading directory
 
-    tmp = []
-    #TODO Eliminate need for this block
-    for name, cl in students.iteritems():
-        main = cl.pop(0)  # Assume first class is the main one
-        tmp.append(student.Student(name, main, cl))
-
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, tmp, q))  # Set up the building thread
+    t = Thread(target=do_builds, args=(path, students, q))  # Set up the building thread
 
     t.start()
 
@@ -95,20 +89,24 @@ def main():
 
         os.chdir(wrkpath)
 
-        #TODO Update this block to use the proper Student testing mechanism
         #NOTE The structure of this block will probably change significantly once pynscreen is done
         possible = 0
-        for test in currentstudent.tests:
-            print "Running test %s..." % test.name
-            test.start()
-            possible += test.possible
-            print "\nThe program got a score of {score}/{possible}".format(score=test.score,
-                                                                           possible=test.possible)
 
+        print "Running tests..."
+        currentstudent.dotests()
+        for test in currentstudent.tests:
+            possible += test.possible
+            print "\nThe program got a score of {score}/{possible} on {test}".format(score=test.score,
+                                                                                     possible=test.possible,
+                                                                                     test=test.name)
+
+        print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
+                                                                       possible=test.possible)
+        for test in currentstudent.tests:
             #Determine if this test supports providing output
             if hasattr(test, 'output'):
                 #And see if the user wants to do anything with it
-                sel = raw_input("The test has output available. ([s]ave, [v]iew, [i]gnore)").lower()
+                sel = raw_input("%s has output available. ([s]ave, [v]iew, [i]gnore)" % test.name).lower()
 
                 if sel == 'v':
                     print test.output()
@@ -120,9 +118,6 @@ def main():
                         f.write(test.output())
 
                     print "Output saved to " + test.name + "_output.log"
-
-        print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
-                                                                       possible=test.possible)
 
         ans = raw_input("Do you want to interact with the program? (y/n)")
 
@@ -136,13 +131,10 @@ def main():
     t.join()
 
 
-
-
-#end main
-
 def print_numbered(l):
     for i in xrange(len(l)):
         print str(i+1) + ". " + str(l[i])
+
 
 def do_builds(path, studentslist, que):
     for curstudent in studentslist:
@@ -160,7 +152,7 @@ def prepare_directory(path):
     :rtype : Dict
     """
 
-    res = {}
+    tmp = {}
 
     files = os.listdir(path)
 
@@ -229,8 +221,12 @@ def prepare_directory(path):
 
         #Gets the class list for the student, if the student hasn't been added creates an empty list
         #Doing it this way allows for multifile java projects
-        res.setdefault(studentname, []).append(className)
+        tmp.setdefault(studentname, []).append(className)
 
+    res = []
+    for name, cl in tmp.iteritems():
+        main = cl.pop(0)  # Assume first class is the main one
+        res.append(student.Student(name, main, cl))
 
     return res
 
