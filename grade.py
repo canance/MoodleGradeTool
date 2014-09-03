@@ -1,5 +1,6 @@
 # #########################################################################
-# Author:      Cory Nance												 
+# Author:      Cory Nance
+# Author:      Phillip Wall
 # Description: Script to grade labs   									 
 # Date: 	   20 August 2014											 
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
@@ -26,20 +27,22 @@ MAX_BUILDS = 5
 def main():
 
     parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
-    parser.add_argument('-p', '--path', metavar='Path', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
     args = parser.parse_args()
 
-    path = ""
-    if args.path:
-        path = args.path
-        path = os.path.abspath(path)  # Convert the path to an absolute path
-
+    path = os.path.abspath(args.path) if args.path else ""
 
     while not os.path.exists(path):
-        if path != '':
+        if path != "":
             sys.stderr.write('Invalid path: ' + path + "\n")
         path = raw_input("Please enter a valid path: ")
         path = os.path.abspath(path)
+
+    config = os.path.abspath(args.config) if args.config else ""
+
+    if not os.path.exists(config):
+        config = path
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
