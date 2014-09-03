@@ -25,14 +25,17 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
     if len(sys.argv) < 2:
-        path = raw_input("Please enter the path (zip/folder): ")
+        paths = fileconfig()
     else:
-        path = str(sys.argv[1])
+        paths = {}
+        paths['folder'] = str(sys.argv[1])
+        paths['config'] = paths['folder']
     #end if
 
+    for k, v in paths.iteritems():
+        paths[k] = os.path.abspath(v)
 
-    path = os.path.abspath(path)  # Convert the path to an absolute path
-
+    path = paths['folder']
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
@@ -42,17 +45,19 @@ def main():
 
         path = path[:-4]  # Set path to newly created directory
 
-    os.chdir(path)  # Change the working directory to the grading directory
+    os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
-    for filename in os.listdir(path):
+    for filename in os.listdir(paths['config']):
         if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(path + '/' + filename, 'r') as f:  # Open the file
+            with open(filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(path+'/'+filename)  # If they do, give them the file path to parse
+                        tester.parse_config(filename)  # If they do, give them the file path to parse
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
+
+    os.chdir(paths['folder'])
 
     tkeys = select_test()
 
@@ -133,6 +138,21 @@ def main():
 
 
 #end main
+
+@cliforms.forms
+def fileconfig(*args):
+    f = cliforms.FileDialog()
+    f.edit()
+
+    ret = {'folder': f.directory.value, 'config': f.testconf.value}
+
+    if not ret['folder']:
+        ret['folder'] = os.curdir
+
+    if not ret['config']:
+        ret['config'] = ret['folder']
+
+    return ret
 
 @cliforms.forms
 def select_test(*args):

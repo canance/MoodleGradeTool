@@ -8,6 +8,13 @@ from os.path import abspath
 
 theme = npyscreen.Themes.TransparentThemeLightText
 
+class FileDialog(npyscreen.Form):
+
+    def create(self):
+        self.name = "Select Files"
+
+        self.directory = self.add(npyscreen.TitleFilename, name="Folder/zip to grade (default: current directory): ")
+        self.testconf = self.add(npyscreen.TitleFilename, name="Test configuration data (default: same as above): ")
 
 class TestsSelector(npyscreen.Form):
 
