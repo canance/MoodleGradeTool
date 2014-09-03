@@ -31,12 +31,12 @@ class TesterMeta(abc.ABCMeta):
 class Tester(object):
     __metaclass__ = TesterMeta
 
-    cwd = '.'
+    cwd = './{student}'
 
     def __init__(self, student, clsName):
         self.student = student
         self.clsName = clsName
-        self.cwd = self.cwd.format(student=student, cls=clsName)
+        self.cwd = os.path.abspath(self.cwd.format(student=student, cls=clsName))
 
     @abc.abstractmethod
     def start(self):

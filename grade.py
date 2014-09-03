@@ -55,7 +55,12 @@ def main():
                         f.seek(0)  # Need to reset the file position for next check
 
     tkeys = select_test()
-    tlist = [tests[key] for key in tkeys]
+
+    if tkeys:
+        tlist = [tests[key] for key in tkeys]
+    else:
+        tlist = tests['Manual']
+
     print tlist
     student.Student.tests = tlist
 
@@ -91,7 +96,7 @@ def main():
         #Change the working path to the student's directory
         wrkpath = "{}/{}".format(path, currentstudent.name)
 
-        os.chdir(wrkpath)
+        #os.chdir(wrkpath)
 
         #NOTE The structure of this block will probably change significantly once pynscreen is done
         possible = 0
@@ -106,30 +111,20 @@ def main():
 
         print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
                                                                        possible=possible)
-        for test in currentstudent.tests:
-            #Determine if this test supports providing output
-            if hasattr(test, 'output'):
-                #And see if the user wants to do anything with it
-                sel = raw_input("%s has output available. ([s]ave, [v]iew, [i]gnore)" % test.name).lower()
+        save, manual = process_tests(currentstudent)
 
-                if sel == 'v':
-                    print test.output()
-                    sel = raw_input("Would you like to save it? (y/n)").lower()
-                    sel = 's' if sel == 'y' else 'i'
+        if save:
+            for test in filter(lambda t: hasattr(t,'output'), currentstudent.tests):
+                with open("{path}/{test}_output.log".format(path=wrkpath, test=test.name), 'w') as log:
+                    log.write(test.output())
 
-                if sel == 's':
-                    with open(test.name + "_output.log", 'w') as f:
-                        f.write(test.output())
-
-                    print "Output saved to " + test.name + "_output.log"
-
-        ans = raw_input("Do you want to interact with the program? (y/n)")
-
-        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
-            print
-            currentstudent.dotest(tests['Manual'])
-            ans = raw_input("Program finished, do you want to rerun it? (y/n)")
-            print
+        if manual:
+            ans = 'y'
+            while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
+                print
+                currentstudent.dotest(tests['Manual'])
+                ans = raw_input("Program finished, do you want to rerun it? (y/n)")
+                print
 
     os.chdir(path)
     t.join()
@@ -142,21 +137,31 @@ def main():
 @cliforms.forms
 def select_test(*args):
     """Will prompt the user for the test they want to run.
-    Returns the key of the test they selected.
-    :rtype : string
+    :returns: A list of keys of the selected tests or None if none selected
+    :rtype : List
     """
 
     keys = tests.keys()
     f = cliforms.TestsSelector()
     f.edit()
-    indexes = [0] if not len(f.selector.value) else f.selector.value
+    indexes = f.selector.value
+
+    if not indexes:
+        return None
+
     return [keys[i] for i in indexes]
 
 @cliforms.forms
-def process_tests(stdscr, tests):
-    pass
+def process_tests(stdscr, student):
+    """
+    Processes the results of a test.
+    :returns: A tuple of (Save output, Run Manual)
+    :rtype: tuple
+    """
+    f = cliforms.StudentRecord(student=student)
+    f.edit()
 
-
+    return f.checksave.value, f.checkmanual.value
 
 def print_numbered(l):
     for i in xrange(len(l)):
