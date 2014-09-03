@@ -13,6 +13,9 @@ import subprocess
 import zipfile
 import re
 import datetime
+
+import argparse
+
 from testing import tests, testers
 
 from threading import Thread
@@ -21,14 +24,22 @@ from Queue import Queue
 MAX_BUILDS = 5
 
 def main():
-    if len(sys.argv) < 2:
-        path = raw_input("Please enter the path (zip/folder): ")
-    else:
-        path = str(sys.argv[1])
-    #end if
+
+    parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
+    parser.add_argument('-p', '--path', metavar='Path', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    args = parser.parse_args()
+
+    path = ""
+    if args.path:
+        path = args.path
+        path = os.path.abspath(path)  # Convert the path to an absolute path
 
 
-    path = os.path.abspath(path)  # Convert the path to an absolute path
+    while not os.path.exists(path):
+        if path != '':
+            sys.stderr.write('Invalid path: ' + path + "\n")
+        path = raw_input("Please enter a valid path: ")
+        path = os.path.abspath(path)
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
