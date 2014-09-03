@@ -5,14 +5,15 @@
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
 ##########################################################################
 
+import cliforms
+
 import os
 import sys
 import shutil
 
-import subprocess
 import zipfile
 import re
-import datetime
+import student
 from testing import tests, testers
 
 from threading import Thread
@@ -20,16 +21,21 @@ from Queue import Queue
 
 MAX_BUILDS = 5
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
+
 def main():
     if len(sys.argv) < 2:
-        path = raw_input("Please enter the path (zip/folder): ")
+        paths = fileconfig()
     else:
-        path = str(sys.argv[1])
+        paths = {}
+        paths['folder'] = str(sys.argv[1])
+        paths['config'] = paths['folder']
     #end if
 
+    for k, v in paths.iteritems():
+        paths[k] = os.path.abspath(v)
 
-    path = os.path.abspath(path)  # Convert the path to an absolute path
-
+    path = paths['folder']
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
@@ -39,23 +45,35 @@ def main():
 
         path = path[:-4]  # Set path to newly created directory
 
-    os.chdir(path)  # Change the working directory to the grading directory
+    os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
-    for file in os.listdir(path):
-        if file.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(path + '/' + file, 'r') as f:  # Open the file
+    for filename in os.listdir(paths['config']):
+        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
+            with open(filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(path+'/'+file)  # If they do, give them the file path to parse
+                        tester.parse_config(filename)  # If they do, give them the file path to parse
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
+
+    os.chdir(paths['folder'])
+
+    tkeys = select_test()
+
+    if tkeys:
+        tlist = [tests[key] for key in tkeys]
+    else:
+        tlist = tests['Manual']
+
+    print tlist
+    student.Student.tests = tlist
 
     students = prepare_directory(path)  # Prepare the grading directory
 
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, students.iteritems(), q))  # Set up the building thread
+    t = Thread(target=do_builds, args=(path, students, q))  # Set up the building thread
 
     t.start()
 
@@ -63,63 +81,55 @@ def main():
     while t.isAlive() or not q.empty():
 
         #Get the information about the next program in the list
-        studentName, className, buildProc = q.get()
+        currentstudent = q.get()
+        assert isinstance(currentstudent, student.Student)
 
         #Print out the information
         print "#" * 35, '\n'
-        print studentName
-        print "{path}/{student}/{cls}.java".format(path=path,student=studentName,cls=className)
+        print currentstudent.name
+        print "{path}/{student}/{cls}.java".format(path=path, student=currentstudent.name,
+                                                   cls=currentstudent.java_class)
 
-        #Wait for the build to finish
-        if not buildProc.poll():
-            print "Wating for build to finish..."
-            buildProc.wait()
+        if currentstudent.state == student.StudentState.building:
+            print "Waiting for build to finish..."
+            currentstudent.proc.wait()
 
-        #Continue to the next one if this one didn't build
-        if buildProc.returncode != 0:
-            print "{student}'s project didn't build".format(student=studentName)
+        if currentstudent.state == student.StudentState.build_error:
+            print "There was a problem during build, check the build.log in the students folder."
             continue
 
         #Change the working path to the student's directory
-        wrkpath = "{}/{}".format(path, studentName)
+        wrkpath = "{}/{}".format(path, currentstudent.name)
 
-        os.chdir(wrkpath)
+        #os.chdir(wrkpath)
 
-        ans = "y"
-        while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
+        #NOTE The structure of this block will probably change significantly once pynscreen is done
+        possible = 0
 
-            #If there is only one test run it, otherwise ask which one to run
-            if len(tests) == 1:
-                key = tests.keys()[0]
-            else:
-                key = select_test()
+        print "Running tests..."
+        currentstudent.dotests()
+        for test in currentstudent.tests:
+            possible += test.possible
+            print "\nThe program got a score of {score}/{possible} on {test}".format(score=test.score,
+                                                                                     possible=test.possible,
+                                                                                     test=test.name)
 
-            #Initalize the test then start it
-            test = tests[key](studentName, className)
+        print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
+                                                                       possible=possible)
+        save, manual = process_tests(currentstudent)
 
-            print "Running test %s..." % key
-            test.start()
+        if save:
+            for test in filter(lambda t: hasattr(t,'output'), currentstudent.tests):
+                with open("{path}/{test}_output.log".format(path=wrkpath, test=test.name), 'w') as log:
+                    log.write(test.output())
 
-            print "\nThe program got a score of {score}/{possible}".format(score=test.score(), possible=test.possible())
-
-            #Determine if this test supports providing output
-            if hasattr(test, 'output'):
-                #And see if the user wants to do anything with it
-                sel = raw_input("The test has output available. ([s]ave, [v]iew, [i]gnore)").lower()
-
-                if sel == 'v':
-                    print test.output()
-                    sel = raw_input("Would you like to save it? (y/n)").lower()
-                    sel = 's' if sel == 'y' else 'i'
-
-                if sel == 's':
-                    with open(key + "_output.log") as f:
-                        f.write(test.output)
-                    print "Output saved to " + key + "_output.log"
-
-            print
-            ans = raw_input("Program finished, do you want to rerun it? (y/n)")
-            print
+        if manual:
+            ans = 'y'
+            while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
+                print
+                currentstudent.dotest(tests['Manual'])
+                ans = raw_input("Program finished, do you want to rerun it? (y/n)")
+                print
 
     os.chdir(path)
     t.join()
@@ -129,57 +139,59 @@ def main():
 
 #end main
 
-def select_test():
+@cliforms.forms
+def fileconfig(*args):
+    f = cliforms.FileDialog()
+    f.edit()
+
+    ret = {'folder': f.directory.value, 'config': f.testconf.value}
+
+    if not ret['folder']:
+        ret['folder'] = os.curdir
+
+    if not ret['config']:
+        ret['config'] = ret['folder']
+
+    return ret
+
+@cliforms.forms
+def select_test(*args):
     """Will prompt the user for the test they want to run.
-    Returns the key of the test they selected.
-    :rtype : string
+    :returns: A list of keys of the selected tests or None if none selected
+    :rtype : List
     """
+
     keys = tests.keys()
+    f = cliforms.TestsSelector()
+    f.edit()
+    indexes = f.selector.value
 
-    while True:
-        print
-        sel = raw_input("Which test would you like to run? (l to list)")
+    if not indexes:
+        return None
 
-        if sel.lower() == 'l':
-            print_numbered(keys)
-            continue
+    return [keys[i] for i in indexes]
 
-        try:
-            sel = int(sel)
-        except ValueError:
-            sel = 0
+@cliforms.forms
+def process_tests(stdscr, student):
+    """
+    Processes the results of a test.
+    :returns: A tuple of (Save output, Run Manual)
+    :rtype: tuple
+    """
+    f = cliforms.StudentRecord(student=student)
+    f.edit()
 
-        if 0 < sel <= len(keys):
-            return keys[sel-1]
-
-        print "Invalid test number"
+    return f.checksave.value, f.checkmanual.value
 
 def print_numbered(l):
     for i in xrange(len(l)):
         print str(i+1) + ". " + str(l[i])
 
+
 def do_builds(path, studentslist, que):
-
-    for studentName, classes in studentslist:
-
-        className = classes[0]  # For now we're assuming single file java projects
-
-        wrkpath = "{}/{}".format(path, studentName)
-
-
-        with open(wrkpath + "/build.log", "a") as log:  # Start logging for the build
-            #Log entry header
-            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
-            log.write("Starting build of %s.java\n\n" % className)
-
-            #Make srcPath
-            srcPath = [wrkpath] + className.split('.')  # Need to split on '.' to handle package cases
-            srcPath = "/".join(srcPath) + '.java'
-
-            #Do build, direct output to the log
-            proc = subprocess.Popen(('javac', srcPath), stdout=log, stderr=log)
-
-            que.put((studentName, className, proc)) # Add build to queue
+    for curstudent in studentslist:
+        curstudent.dobuild()
+        que.put(curstudent)
 
 
 def prepare_directory(path):
@@ -192,7 +204,7 @@ def prepare_directory(path):
     :rtype : Dict
     """
 
-    res = {}
+    tmp = {}
 
     files = os.listdir(path)
 
@@ -226,12 +238,13 @@ def prepare_directory(path):
         if not m:
             continue  #If there is not a match this filename does not match the expected format, skip it.
 
-        student = m.group(1)  #Get the student name from the match
+
+        studentname = m.group(1)  #Get the student name from the match
         className = m.group(2)  #Get the className from the match
-        destFile = "{}/{}/{}.java".format(path, student, className)
+        destFile = "{}/{}/{}.java".format(path, studentname, className)
         origFile = "{}/{}".format(path, f)
 
-        studentdir = "{}/{}".format(path, student)
+        studentdir = "{}/{}".format(path, studentname)
         if not os.path.exists(studentdir):
             os.mkdir(studentdir)
 
@@ -247,7 +260,7 @@ def prepare_directory(path):
                     package = line.replace("package ", "").strip(';\r\n')
                     #1. create a new directory for the package
                     #2. Move the class file to the package directory
-                    destdir = "{}/{}/{}".format(path, student, package)
+                    destdir = "{}/{}/{}".format(path, studentname, package)
 
                     if not os.path.exists(destdir):
                         os.mkdir(destdir)
@@ -260,8 +273,12 @@ def prepare_directory(path):
 
         #Gets the class list for the student, if the student hasn't been added creates an empty list
         #Doing it this way allows for multifile java projects
-        res.setdefault(student, []).append(className)
+        tmp.setdefault(studentname, []).append(className)
 
+    res = []
+    for name, cl in tmp.iteritems():
+        main = cl.pop(0)  # Assume first class is the main one
+        res.append(student.Student(name, main, cl))
 
     return res
 
