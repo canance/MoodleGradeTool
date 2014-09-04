@@ -4,17 +4,59 @@ import npyscreen
 import curses
 import locale
 from testing import tests
+import os.path
 from os.path import abspath
 
 theme = npyscreen.Themes.TransparentThemeLightText
 
-class FileDialog(npyscreen.Form):
+class FileDialog(npyscreen.ActionForm):
+    def __init__(self, folder="", conf=""):
+        self.fpath = folder
+        self.cpath = conf
+        npyscreen.Form.__init__(self)
 
     def create(self):
         self.name = "Select Files"
 
+        self.invalid_dir = self.add(npyscreen.FixedText)
+        self.invalid_conf = self.add(npyscreen.FixedText)
+
+        self.nextrely +=2
+
         self.directory = self.add(npyscreen.TitleFilename, name="Folder/zip to grade (default: current directory): ")
+        self.directory.value = self.fpath
         self.testconf = self.add(npyscreen.TitleFilename, name="Test configuration data (default: same as above): ")
+        self.testconf.value = self.cpath
+
+        self.set_editing(self.directory)
+
+
+
+    def on_ok(self):
+        path = self.directory.value
+        conf = self.testconf.value
+        reset = False
+
+        if path and not os.path.exists(path):
+            self.invalid_dir.value = "Incorrect path for directory to grade"
+            reset = True
+        else:
+            self.invalid_dir.value = ""
+
+        if conf and not os.path.exists(conf):
+            self.invalid_conf.value = "Incorrect path for test configuration data"
+            reset = True
+        else:
+            self.invalid_conf.value = ""
+
+        if reset:
+            self.display()
+            self.editing = True
+
+    def on_cancel(self):
+        self.directory.value = self.fpath
+        self.testconf.value = self.cpath
+
 
 class TestsSelector(npyscreen.Form):
 

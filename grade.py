@@ -24,13 +24,12 @@ MAX_BUILDS = 5
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
-    if len(sys.argv) < 2:
-        paths = fileconfig()
-    else:
-        paths = {}
+    paths = {}
+    if len(sys.argv) > 1:
         paths['folder'] = str(sys.argv[1])
-        paths['config'] = paths['folder']
-    #end if
+        paths['config'] = ""
+
+    paths = fileconfig(**paths)
 
     for k, v in paths.iteritems():
         paths[k] = os.path.abspath(v)
@@ -135,13 +134,9 @@ def main():
     t.join()
 
 
-
-
-#end main
-
 @cliforms.forms
-def fileconfig(*args):
-    f = cliforms.FileDialog()
+def fileconfig(stdscr, folder="", config="",*args):
+    f = cliforms.FileDialog(folder, config)
     f.edit()
 
     ret = {'folder': f.directory.value, 'config': f.testconf.value}
@@ -182,6 +177,7 @@ def process_tests(stdscr, student):
     f.edit()
 
     return f.checksave.value, f.checkmanual.value
+
 
 def print_numbered(l):
     for i in xrange(len(l)):
