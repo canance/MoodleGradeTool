@@ -18,19 +18,15 @@ def requirestate(state):
     Decorator: Requires the object be in a certain state before the function can be run. An iterable can be passed
     in which case the objects state needs to match any of the elements.
 
-    :param state: The state that needs to be matched
+    :param state: The state(s) that needs to be matched
     """
     def decorator(func):
         def checkstate(self, *args, **kwargs):
             try:
-                #I attempted to do a simple in/is comparison here, but it wasn't working so I had to compare values
                 try:
-                    val = False
-                    for s in state:
-                        val = s.value == self.state.value or val
-                    assert val
+                    assert self.state in state
                 except TypeError:
-                    assert self.state.value == state.value
+                    assert self.state == state
             except AssertionError as ex:
                 raise StateError("{obj} is not in {state} state(s)".format(obj=repr(self), state=str(state)))
             return func(self, *args, **kwargs)
@@ -41,7 +37,7 @@ def requirestate(state):
 
 
 class StudentState(Enum):
-    not_built = 0  # The program has not been build yet
+    not_built = 0  # The program has not been built yet
     building = 1  # The program is in the process of building
     build_error = -1  # There was a problem during building
     not_tested = 2  # The program built ok, but has not been tested yet
@@ -99,14 +95,18 @@ class Student(object):
         Builds the program.
         """
         self._state = StudentState.building  # Set state to building
-        with open(self.directory + "/build.log", 'a') as log:  # Open the log file
-            #Log entry header
-            log.write('\n\n' + str(datetime.datetime.now()) + '\n')
-            log.write("Starting build of %s.java\n\n" % self.java_class)
+        try:
+            with open(self.directory + "/build.log", 'a') as log:  # Open the log file
+                #Log entry header
+                log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+                log.write("Starting build of %s.java\n\n" % self.java_class)
 
-            #Start the build
-            self.proc = subprocess.Popen(('javac', "/".join(self.java_class.split(".")) + ".java"),
-                                         cwd=self.directory, stdout=log, stderr=subprocess.STDOUT)
+                #Start the build
+                self.proc = subprocess.Popen(('javac', "/".join(self.java_class.split(".")) + ".java"),
+                                             cwd=self.directory, stdout=log, stderr=subprocess.STDOUT)
+        except Exception as ex:
+            self._state = StudentState.build_error
+            raise ex
 
     @property
     @requirestate(StudentState.ready)
@@ -134,6 +134,7 @@ class Student(object):
 
         :rtype: StudentState
         """
+        # If the state is building we need to check
         if self._state == StudentState.building and not self.proc.poll() is None:
             if self.proc.returncode == 0:
                 self._state = StudentState.not_tested
