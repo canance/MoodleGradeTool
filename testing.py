@@ -31,12 +31,12 @@ class TesterMeta(abc.ABCMeta):
 class Tester(object):
     __metaclass__ = TesterMeta
 
-    cwd = '.'
+    cwd = './{student}'
 
     def __init__(self, student, clsName):
         self.student = student
         self.clsName = clsName
-        self.cwd = self.cwd.format(student=student, cls=clsName)
+        self.cwd = os.path.abspath(self.cwd.format(student=student, cls=clsName))
 
     @abc.abstractmethod
     def start(self):
@@ -59,7 +59,7 @@ class Tester(object):
         """
         return {}
 
-    @abc.abstractmethod
+    @abc.abstractproperty
     def score(self):
         """
         The score the program got.
@@ -67,7 +67,7 @@ class Tester(object):
         """
         pass
 
-    @abc.abstractmethod
+    @abc.abstractproperty
     def possible(self):
         """
         The possible score on this test.
@@ -95,9 +95,11 @@ class ManualTest(Tester):
     def parse_config(cls, configfile):
         return {'name': configfile}
 
+    @property
     def score(self):
         return 1
 
+    @property
     def possible(self):
         return 1
 
@@ -154,8 +156,10 @@ class RegexTester(Tester):
         """
         return self._output
 
+    @property
     def score(self):
         return self._score
+
 
     def start(self):
         self._score = 0
@@ -175,6 +179,7 @@ class RegexTester(Tester):
     def handlesconfig(fd):
         return "RegexTester" in fd.readline()
 
+    @property
     def possible(self):
         return len(self.regexes)
 
