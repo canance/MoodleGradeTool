@@ -12,10 +12,8 @@ import os
 import sys
 import shutil
 
-import subprocess
 import zipfile
 import re
-import datetime
 import student
 import argparse
 
