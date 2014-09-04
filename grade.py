@@ -31,6 +31,7 @@ def main():
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
     args = parser.parse_args()
 
+    #set path and config variables
     path = os.path.abspath(args.path) if args.path else ""
 
     while not os.path.exists(path):
@@ -43,6 +44,8 @@ def main():
 
     if not os.path.exists(config):
         config = path
+
+    paths = {'folder': path, 'config': config}
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
