@@ -32,22 +32,19 @@ def main():
     parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
     args = parser.parse_args()
-
+    
     #set path and config variables
-    path = os.path.abspath(args.path) if args.path else ""
-
-    while not os.path.exists(path):
-        if path != "":
-            sys.stderr.write('Invalid path: ' + path + "\n")
-        path = raw_input("Please enter a valid path: ")
-        path = os.path.abspath(path)
-
-    config = os.path.abspath(args.config) if args.config else ""
-
-    if not os.path.exists(config):
-        config = path
-
+    path = os.path.abspath(args.path) if args.path else None
+    config = os.path.abspath(args.config) if args.config else None
+    
     paths = {'folder': path, 'config': config}
+    
+    if path is None or config is None:
+        paths = fileconfig(**paths)
+
+    for k, v in paths.iteritems():
+        paths[k] = os.path.abspath(v)
+  
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
@@ -153,8 +150,8 @@ def main():
 #end main
 
 @cliforms.forms
-def fileconfig(*args):
-    f = cliforms.FileDialog()
+def fileconfig(stdscr, folder="", config="",*args):
+    f = cliforms.FileDialog(folder, config)
     f.edit()
 
     ret = {'folder': f.directory.value, 'config': f.testconf.value}
@@ -195,6 +192,7 @@ def process_tests(stdscr, student):
     f.edit()
 
     return f.checksave.value, f.checkmanual.value
+
 
 def print_numbered(l):
     for i in xrange(len(l)):
