@@ -33,10 +33,18 @@ def main():
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
     args = parser.parse_args()
 
-    for k, v in paths.iteritems():  # Convert all the paths to absolute paths
+    #set path and config variables
+    path = os.path.abspath(args.path) if args.path else None
+    config = os.path.abspath(args.config) if args.config else None
+
+    paths = {'folder': path, 'config': config}
+
+    if path is None or config is None:
+        paths = fileconfig(**paths)
+
+    for k, v in paths.iteritems():
         paths[k] = os.path.abspath(v)
 
-    path = paths['folder']  # Set path to the main path
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
