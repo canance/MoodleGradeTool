@@ -1,5 +1,6 @@
 # #########################################################################
-# Author:      Cory Nance												 
+# Author:      Cory Nance
+# Author:      Phillip Wall
 # Description: Script to grade labs   									 
 # Date: 	   20 August 2014											 
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
@@ -14,6 +15,8 @@ import shutil
 import zipfile
 import re
 import student
+import argparse
+
 from testing import tests, testers
 
 from threading import Thread
@@ -24,12 +27,11 @@ MAX_BUILDS = 5
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
-    paths = {}
-    if len(sys.argv) > 1:  # If there is an argument
-        paths['folder'] = str(sys.argv[1])  # Get it and set it to 'folder'
-        paths['config'] = ""  # Leave config blank
 
-    paths = fileconfig(**paths)  # Run the file configuration dialog
+    parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
+    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
+    args = parser.parse_args()
 
     for k, v in paths.iteritems():  # Convert all the paths to absolute paths
         paths[k] = os.path.abspath(v)
