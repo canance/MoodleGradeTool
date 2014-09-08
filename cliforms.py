@@ -11,8 +11,8 @@ theme = npyscreen.Themes.TransparentThemeLightText
 
 class FileDialog(npyscreen.ActionForm):
     def __init__(self, folder="", conf=""):
-        self.fpath = folder
-        self.cpath = conf
+        self.fpath = folder  # The default grading folder
+        self.cpath = conf  # The default configuration folder
         npyscreen.Form.__init__(self)
 
     def create(self):
