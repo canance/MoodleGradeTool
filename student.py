@@ -134,10 +134,10 @@ class Student(object):
 
         :rtype: StudentState
         """
-        # If the state is building we need to check
+        # If the state is building we need to check to see if there was a build error
         if self._state == StudentState.building and not self.proc.poll() is None:
             if self.proc.returncode == 0:
-                self._state = StudentState.not_tested
+                self._state = StudentState.not_tested  # Set state to not tested when build succeeds
             else:
                 self._state = StudentState.build_error
 
