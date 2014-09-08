@@ -34,20 +34,16 @@ def main():
     args = parser.parse_args()
 
     #set path and config variables
-    path = os.path.abspath(args.path) if args.path else ""
-
-    while not os.path.exists(path):
-        if path != "":
-            sys.stderr.write('Invalid path: ' + path + "\n")
-        path = raw_input("Please enter a valid path: ")
-        path = os.path.abspath(path)
-
-    config = os.path.abspath(args.config) if args.config else ""
-
-    if not os.path.exists(config):
-        config = path
+    path = os.path.abspath(args.path) if args.path else None
+    config = os.path.abspath(args.config) if args.config else None
 
     paths = {'folder': path, 'config': config}
+
+    if path is None or config is None:
+        paths = fileconfig(**paths)
+
+    for k, v in paths.iteritems():
+        paths[k] = os.path.abspath(v)
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
