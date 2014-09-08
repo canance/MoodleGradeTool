@@ -1,5 +1,6 @@
 # #########################################################################
-# Author:      Cory Nance												 
+# Author:      Cory Nance
+# Author:      Phillip Wall
 # Description: Script to grade labs   									 
 # Date: 	   20 August 2014											 
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
@@ -14,6 +15,8 @@ import shutil
 import zipfile
 import re
 import student
+import argparse
+
 from testing import tests, testers
 
 from threading import Thread
@@ -24,17 +27,28 @@ MAX_BUILDS = 5
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
-    paths = {}
-    if len(sys.argv) > 1:
-        paths['folder'] = str(sys.argv[1])
-        paths['config'] = ""
 
-    paths = fileconfig(**paths)
+    parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
+    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
+    args = parser.parse_args()
 
-    for k, v in paths.iteritems():
-        paths[k] = os.path.abspath(v)
+    #set path and config variables
+    path = os.path.abspath(args.path) if args.path else ""
 
-    path = paths['folder']
+    while not os.path.exists(path):
+        if path != "":
+            sys.stderr.write('Invalid path: ' + path + "\n")
+        path = raw_input("Please enter a valid path: ")
+        path = os.path.abspath(path)
+
+    config = os.path.abspath(args.config) if args.config else ""
+
+    if not os.path.exists(config):
+        config = path
+
+    paths = {'folder': path, 'config': config}
+
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         os.mkdir(path[:-4])
