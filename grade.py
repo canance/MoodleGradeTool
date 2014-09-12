@@ -34,12 +34,12 @@ def main():
     args = parser.parse_args()
     
     #set path and config variables
-    path = os.path.abspath(args.path) if args.path else None
-    config = os.path.abspath(args.config) if args.config else None
+    path = os.path.abspath(args.path) if args.path else os.curdir
+    config = os.path.abspath(args.config) if args.config else path
     
     paths = {'folder': path, 'config': config}
     
-    if path is None or config is None:
+    if path is "" or config is "":
         paths = fileconfig(**paths)
 
     for k, v in paths.iteritems():
@@ -54,6 +54,10 @@ def main():
             z.extractall(path=path[:-4])  # Extract the files
 
         path = path[:-4]  # Set path to newly created directory
+	paths['folder'] = path
+
+    if '.zip' == paths['config'][-4:]:
+        paths['config'] = paths['config'][:-4]
 
     os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
