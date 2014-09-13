@@ -34,12 +34,12 @@ def main():
     args = parser.parse_args()
     
     #set path and config variables
-    path = os.path.abspath(args.path) if args.path else os.curdir
-    config = os.path.abspath(args.config) if args.config else path
+    path = os.path.abspath(args.path) if args.path else None
+    config = os.path.abspath(args.config) if args.config else None
     
     paths = {'folder': path, 'config': config}
     
-    if path is "" or config is "":
+    if path is None or config is None:
         paths = fileconfig(**paths)
 
     for k, v in paths.iteritems():
@@ -48,6 +48,8 @@ def main():
 
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
+        if os.path.exists(path[:-4]):
+            shutil.rmtree(path[:-4])
         os.mkdir(path[:-4])
 
         with zipfile.ZipFile(path) as z:
