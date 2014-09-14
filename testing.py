@@ -5,6 +5,7 @@ import sys, os
 import re
 import subprocess
 import abc
+import filemanager
 
 
 testers = set()  # The available test types
@@ -115,8 +116,11 @@ class RegexTester(Tester):
     @classmethod
     def parse_config(cls, configfile):
         ret = {}
+        ret['config_dir'] = os.getcwd()
+        ret['cp'] = []
+        ret['main'] = None
 
-        detectors = (cls._detect_name, cls._detect_infile,  cls._detect_regex)
+        detectors = (cls._detect_name, cls._detect_infile,  cls._detect_regex, cls._detect_cp, cls._detect_main)
         with open(configfile) as f:
             for line in f:
                 line = line.strip()
@@ -130,16 +134,37 @@ class RegexTester(Tester):
         return ret
 
     @classmethod
-    def _detect_name(cls, line, d):
-        if line and not d.has_key('name'):
-            d['name'] = line
+    def _detect_cp(cls, line, d):
+        if line and line[:4] == "CP: ":
+            line = line[3:]
+            src, dst = line.split('|')
+            src = os.path.abspath(src.strip())
+            dst = dst.strip()
+            d.setdefault('cp', []).append((src, dst))
             return True
 
     @classmethod
-    def _detect_infile(cls, line, d):
-        if (not d.has_key('input_file')) and os.path.isfile(line):
-            d['input_file'] = os.path.abspath(line)
+    def _detect_main(cls, line, d):
+        if line and line[:6] == "MAIN: ":
+            line = line[5:]
+            d['main'] = line
             return True
+
+    @classmethod
+    def _detect_name(cls, line, d):
+        if line and line[:6] == "NAME: ":
+            line = line[5:].strip()
+            if not d.has_key('name'):
+                d['name'] = line
+                return True
+
+    @classmethod
+    def _detect_infile(cls, line, d):
+        if line and line[:7] == "STDIN: ":
+            line = line[6:].strip()
+            if (not d.has_key('input_file')) and os.path.isfile(line):
+                d['input_file'] = os.path.abspath(line)
+                return True
 
     @classmethod
     def _detect_regex(cls, line, d):
@@ -162,18 +187,43 @@ class RegexTester(Tester):
 
 
     def start(self):
+
+        #handle file copying
+        #start filemanager copy, get key
+        keys = []
+        for path in self.cp:
+            src, dst = path
+            keys.append(filemanager.copy(src, dst))
+
+        #if main class was specified copy it and compile.  Replace self.clsName with main class.
+        if self.main is not None:
+            src = "%s/%s" % (os.path.dirname(self.config_dir), self.main)
+            dst = "%s/%s" % (self.cwd, self.main)
+            keys.append(filemanager.copy(src, dst))
+
+
         self._score = 0
 
         #Call the java program with the input file set to stdin
         #Keep the output
+
         with open(self.input_file) as f:
-            self._output = subprocess.check_output(('java', self.clsName), stdin=f,
+            try:
+                self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                    stderr=subprocess.STDOUT, cwd=self.cwd)
+            except subprocess.CalledProcessError:
+                print "Program did not behave according to test information.  Please try running manually."
+                return
         #Run all the detected regexes against the output
         for reg in self.regexes:
             m = reg.search(self._output)
             if m:
                 self._score += 1  # And count how many matches we got.
+
+        #clean up filemanager
+        for key in keys:
+            filemanager.clean(key)
+
 
     @staticmethod
     def handlesconfig(fd):
