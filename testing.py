@@ -193,6 +193,7 @@ class RegexTester(Tester):
         keys = []
         for path in self.cp:
             src, dst = path
+            dst = "%s/%s" % (self.cwd, dst)
             keys.append(filemanager.copy(src, dst))
 
         #if main class was specified copy it and compile.  Replace self.clsName with main class.
@@ -211,8 +212,8 @@ class RegexTester(Tester):
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                    stderr=subprocess.STDOUT, cwd=self.cwd)
-            except subprocess.CalledProcessError:
-                print "Program did not behave according to test information.  Please try running manually."
+            except subprocess.CalledProcessError, e:
+                print "Program did not behave according to test information.  Please try running manually.", e
                 return
         #Run all the detected regexes against the output
         for reg in self.regexes:
