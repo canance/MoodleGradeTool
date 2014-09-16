@@ -67,6 +67,7 @@ class StudentRecord(npyscreen.SplitForm):
         tempx = self.nextrelx
         tempy = self.nextrely
 
+        #print select_height
         self.seloutput = self.add(npyscreen.TitleSelectOne, name="Display", values=outlist, max_height=select_height)
 
         self.nextrelx = tempx

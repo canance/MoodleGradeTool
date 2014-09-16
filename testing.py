@@ -6,6 +6,7 @@ import re
 import subprocess
 import abc
 import filemanager
+import datetime
 
 
 testers = set()  # The available test types
@@ -147,6 +148,7 @@ class RegexTester(Tester):
     def _detect_main(cls, line, d):
         if line and line[:6] == "MAIN: ":
             line = line[5:]
+            line = os.path.abspath(line.strip())
             d['main'] = line
             return True
 
@@ -198,9 +200,26 @@ class RegexTester(Tester):
 
         #if main class was specified copy it and compile.  Replace self.clsName with main class.
         if self.main is not None:
-            src = "%s/%s" % (os.path.dirname(self.config_dir), self.main)
-            dst = "%s/%s" % (self.cwd, self.main)
+            src = self.main
+            dst = "%s/%s" % (self.cwd, os.path.basename(self.main))
             keys.append(filemanager.copy(src, dst))
+
+            #get classname
+            clsname = os.path.basename(dst)
+            clsname = clsname[:-5]
+            #compile
+            with open(self.cwd + "/build.log", 'a') as log:  # Open the log file
+                #Log entry header
+                log.write('\n\n' + str(datetime.datetime.now()) + '\n')
+                log.write("Starting build of %s.java\n\n" % clsname)
+
+                #Start the build
+                proc = subprocess.Popen(('javac', "/".join(clsname.split(".")) + ".java"),
+                                             cwd=self.cwd, stdout=log, stderr=subprocess.STDOUT)
+                proc.wait()
+            #set self.clsname to main class
+
+            self.clsName = clsname
 
 
         self._score = 0
@@ -213,7 +232,8 @@ class RegexTester(Tester):
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                    stderr=subprocess.STDOUT, cwd=self.cwd)
             except subprocess.CalledProcessError, e:
-                print "Program did not behave according to test information.  Please try running manually.", e
+                print "Program did not behave according to test information.  Please try running manually."
+                print >> sys.stderr, e
                 return
         #Run all the detected regexes against the output
         for reg in self.regexes:
