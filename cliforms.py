@@ -119,6 +119,7 @@ class StudentRecord(npyscreen.SplitForm):
         self.nextrely = self.get_half_way() + 1
 
         total = "Total score: {s.score}/{s.possible}".format(s=self.student)
+
         self.add(npyscreen.FixedText, name="", value=total, max_width=len(total))
 
         self.nextrely += 5
