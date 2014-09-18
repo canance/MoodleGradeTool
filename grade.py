@@ -16,6 +16,8 @@ import zipfile
 import re
 import student
 import argparse
+from lxml import etree
+
 
 from testing import tests, testers
 
@@ -29,14 +31,18 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 def main():
 
     parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
-    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing '
+                                                                             'the Moodle submissions.')
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
+    parser.add_argument('-q', '--quick', action='store_true', help='Quick run.  After selecting tests the program will run the tests, save '
+                                              'the results, and terminate.')
     args = parser.parse_args()
     
     #set path and config variables
     path = os.path.abspath(args.path) if args.path else None
     config = os.path.abspath(args.config) if args.config else None
-    
+    quick = args.quick
+
     paths = {'folder': path, 'config': config}
     
     if path is None or config is None:
@@ -82,7 +88,6 @@ def main():
     else:
         tlist = tests['Manual']
 
-    print tlist
     student.Student.tests = tlist
 
     students = prepare_directory(path)  # Prepare the grading directory
@@ -93,12 +98,17 @@ def main():
 
     t.start()
 
+    #root element for report
+    root = etree.Element("Results")
+
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
 
         #Get the information about the next program in the list
         currentstudent = q.get()
         assert isinstance(currentstudent, student.Student)
+
+        stuelement = etree.SubElement(root, 'student', name=currentstudent.name)
 
         #Print out the information
         print "#" * 35, '\n'
@@ -125,6 +135,10 @@ def main():
         print "Running tests..."
         currentstudent.dotests()
         for test in currentstudent.tests:
+            testelement = etree.SubElement(stuelement, 'test')
+            testelement.set("score", str(test.score))
+            testelement.set("possible", str(test.possible))
+            testelement.set("name", test.name)
             possible += test.possible
             print "\nThe program got a score of {score}/{possible} on {test}".format(score=test.score,
                                                                                      possible=test.possible,
@@ -132,6 +146,9 @@ def main():
 
         print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
                                                                        possible=possible)
+        if quick:
+            continue
+
         save, manual = process_tests(currentstudent)
 
         if save:
@@ -150,6 +167,8 @@ def main():
     os.chdir(path)
     t.join()
 
+    with open('results.xml', 'w') as f:
+        f.write(etree.tostring(root, pretty_print=True))
 
 
 
