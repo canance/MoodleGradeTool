@@ -92,7 +92,7 @@ class StudentRecord(npyscreen.SplitForm):
 
     def create(self):
         self.name = "Test results for {student}".format(student=self.student.name)
-        self.testresults = ["{test.name:<33}{test.score}/{test.possible}".format(test=test) for test
+        self.testresults = ["{test.name:<30}{test.score}/{test.possible}".format(test=test) for test
                             in self.student.tests]
 
         self.outputs = filter(lambda t: hasattr(t, 'output'), self.student.tests)
@@ -120,7 +120,7 @@ class StudentRecord(npyscreen.SplitForm):
 
         total = "Total score: {s.score}/{s.possible}".format(s=self.student)
 
-        self.add(npyscreen.FixedText, name="", value=total, max_width=len(total))
+        self.add(npyscreen.FixedText, name="", value=total, max_width=len(total) + 1)
 
         self.nextrely += 5
 

@@ -170,8 +170,8 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_regex(cls, line, d):
-        if line and line[:7] == "Regex: ":
-            line = line[6:]
+        if line and line[:7].upper() == "REGEX: ":
+            line = line[6:].strip()
             d.setdefault('regexes', []).append(re.compile(line))
             return True
 
@@ -226,15 +226,18 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
-
+        print "Starting test"
+        print "CWD: " + self.cwd
+        print "STDIN: " + self.input_file
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                    stderr=subprocess.STDOUT, cwd=self.cwd)
             except subprocess.CalledProcessError, e:
+                self._output = e.output + "\n" + str(e)
                 print "Program did not behave according to test information.  Please try running manually."
                 print >> sys.stderr, e
-                return
+
         #Run all the detected regexes against the output
         for reg in self.regexes:
             m = reg.search(self._output)
