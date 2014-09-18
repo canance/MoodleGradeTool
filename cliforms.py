@@ -128,6 +128,7 @@ class StudentRecord(npyscreen.SplitForm):
         self.add(npyscreen.TitleMultiLine, name="Test results",  # This shows the test results
                  max_height=select_height, max_width=55, values=self.testresults)
 
+        #print select_height
         self.seloutput = self.add(npyscreen.TitleSelectOne, name="Display", values=outlist, max_height=select_height)
 
         #Start second column
@@ -136,6 +137,7 @@ class StudentRecord(npyscreen.SplitForm):
 
         #Displayes the total score of the student
         total = "Total score: {s.score}/{s.possible}".format(s=self.student)
+
         self.add(npyscreen.FixedText, name="", value=total, max_width=len(total))
 
         self.nextrely += 5  # Skip 5 rows

@@ -32,28 +32,34 @@ def main():
     parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
     args = parser.parse_args()
-
+    
     #set path and config variables
     path = os.path.abspath(args.path) if args.path else None
     config = os.path.abspath(args.config) if args.config else None
-
+    
     paths = {'folder': path, 'config': config}
-
+    
     if path is None or config is None:
         paths = fileconfig(**paths)
 
     for k, v in paths.iteritems():
         paths[k] = os.path.abspath(v)
-
+  
+    path = paths['folder']
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
+        if os.path.exists(path[:-4]):
+            shutil.rmtree(path[:-4])
         os.mkdir(path[:-4])
 
         with zipfile.ZipFile(path) as z:
             z.extractall(path=path[:-4])  # Extract the files
 
         path = path[:-4]  # Set path to newly created directory
-        paths['folder'] = path  # Update the dictionary
+	paths['folder'] = path
+
+    if '.zip' == paths['config'][-4:]:
+        paths['config'] = paths['config'][:-4]
 
     os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
