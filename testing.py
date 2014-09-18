@@ -7,6 +7,7 @@ import subprocess
 import abc
 import filemanager
 import datetime
+from lxml import etree
 
 
 testers = set()  # The available test types
@@ -248,11 +249,46 @@ class RegexTester(Tester):
 
     @staticmethod
     def handlesconfig(fd):
-        return "RegexTester" in fd.readline()
+        return "#RegexTester" in fd.readline()
 
     @property
     def possible(self):
         return len(self.regexes)
+
+
+class AdvancedRegexTester(Tester):
+    def possible(self):
+        pass
+
+    def start(self):
+        pass
+
+    def handlesconfig(fd):
+        count = 0
+        for l in fd:
+            if "<AdvRegexTester" in l:
+                return True
+            elif count > 5:
+                return False
+            count+=1
+        return False
+
+    @classmethod
+    def parse_config(cls, configfile):
+        config = etree.parse(configfile)
+        ret = {}
+        ret['name'] = config.xpath("/name/text()", smart_strings=False)[0]
+        regexes = {}
+        for ele in config.xpath("/Definitions/Regex"):
+            regexes[ele['id']] = re.compile(ele.text)
+        ret['regexes'] = regexes
+        inputs = {}
+        for ele in config.xpath("/Definitions/input"):
+            inputs[ele['id']] = ele.text
+
+
+    def score(self):
+        pass
 
 
 ManualTest.parse_config('Manual')

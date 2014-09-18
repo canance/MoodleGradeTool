@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--AdvancedRegexTester-->
+<AdvRegexTester xmlns="http://moodlegradetool.com/advanced_regex">
+    <name>Test1</name>
+    <Definitions>
+        <main>Hello</main>
+        <file id="file1">dummy1.txt:dummy.txt</file>
+        <Regex id="reg1">test</Regex>
+        <Regex id="reg2">Hello, (.*)</Regex>
+        <Regex id="reg3">(\d+?) \+ (\d+?) = (\d+?)</Regex>
+        <input id="name" type="str">Phillip</input>
+        <input id="num1" type="int">5</input>
+        <input id="num2" type="int">10</input>
+    </Definitions>
+    <Test>
+        <Expect prompt="Enter the file name:">
+            <input>file1</input>
+        </Expect>
+        <Expect prompt="Enter your name:">
+            <match>reg1</match>
+            <input>name</input>
+        </Expect>
+        <Expect prompt="Enter two numbers">
+            <match id="nametest">reg2</match>
+            <input>num1</input>
+            <input>num2</input>
+        </Expect>
+        <Expect>
+            <match id="equ">reg3</match>
+        </Expect>
+        <assertion match="nametest">
+                <group id="1">
+                    name
+                </group>
+        </assertion>
+        <assertion match="equ">
+            <group id="1">
+                num1
+            </group>
+            <group id="2">
+                num2
+            </group>
+            <group id="3" eval="true">
+                num1+num2
+            </group>
+        </assertion>
+    </Test>
+    <Test file="out.text">
+        <Expect>
+            <match id="equ">reg3</match>
+        </Expect>
+        <assertion match="equ">
+            <group id="1">
+                num1
+            </group>
+            <group id="2">
+                num2
+            </group>
+            <group id="3" eval="true">
+                num1+num2
+            </group>
+        </assertion>
+    </Test>
+</AdvRegexTester>
