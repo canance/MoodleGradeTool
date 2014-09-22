@@ -8,7 +8,7 @@ import os.path
 from os.path import abspath
 from pygments import highlight
 from pygments.lexers import get_lexer_for_filename
-from pygments.formatters.terminal256 import Terminal256Formatter
+from cursespygments import CursesFormatter
 
 
 
@@ -140,7 +140,7 @@ class StudentRecord(npyscreen.SplitForm):
         ret = ""
         sourcepath = abspath('./' +self.student.name + '/' + '/'.join(self.student.java_class.split('.')) + '.java')
         with open(sourcepath, 'r') as f:
-            ret = [highlight(l.strip('\n'), get_lexer_for_filename(sourcepath), Terminal256Formatter()) for l in f.readlines()]
+            ret = [highlight(l.strip('\n'), get_lexer_for_filename(sourcepath), CursesFormatter()) for l in f.readlines()]
 
         #add syntax highlighting here
         return ret
