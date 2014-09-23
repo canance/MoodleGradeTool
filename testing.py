@@ -8,7 +8,9 @@ import abc
 import filemanager
 import datetime
 from lxml import etree
+from collections import defaultdict
 
+FileMapping = filemanager.FileMapping
 
 testers = set()  # The available test types
 
@@ -258,7 +260,7 @@ class RegexTester(Tester):
 
 class AdvancedRegexTester(Tester):
     def possible(self):
-        pass
+        return len(self.tree.xpath('//assert')) + len(self.tree.xpath('//match'))
 
     def start(self):
         pass
@@ -270,7 +272,7 @@ class AdvancedRegexTester(Tester):
                 return True
             elif count > 5:
                 return False
-            count+=1
+            count += 1
         return False
 
     @classmethod
@@ -279,13 +281,21 @@ class AdvancedRegexTester(Tester):
         ret = {}
         ret['name'] = config.xpath("/name/text()", smart_strings=False)[0]
         regexes = {}
-        for ele in config.xpath("/Definitions/Regex"):
+        for ele in config.xpath("/Definitions/Regex", smart_strings=False):
             regexes[ele['id']] = re.compile(ele.text)
         ret['regexes'] = regexes
         inputs = {}
-        for ele in config.xpath("/Definitions/input"):
+        for ele in config.xpath("/Definitions/input", smart_strings=False):
             inputs[ele['id']] = ele.text
 
+        ret['files'] = defaultdict(list)
+
+        for ele in config.xpath("/Definitions/file", smart_strings=False):
+            id = 'Default' if not 'id' in ele.atrib else ele['id']
+            ret['files'][id].append(FileMapping(*[s.strip() for s in ele.text.split(':')]))
+
+        ret['tree'] = config
+        return ret
 
     def score(self):
         pass
