@@ -255,42 +255,13 @@ def prepare_directory(path):
         if not m:
             continue  #If there is not a match this filename does not match the expected format, skip it.
 
-
         studentname = m.group(1)  #Get the student name from the match
-        className = m.group(2)  #Get the className from the match
-        destFile = "{}/{}/{}.java".format(path, studentname, className)
-        origFile = "{}/{}".format(path, f)
+        filename = m.group(2)  #Get the file name from the match
 
-        studentdir = "{}/{}".format(path, studentname)
-        if not os.path.exists(studentdir):
-            os.mkdir(studentdir)
-
-        classDeclaration = "public class " + className
-
-        #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
-        with open(origFile) as fHandle:
-            for line in fHandle:
-                if classDeclaration in line:
-                    break
-                if "package " in line:
-                    #Strip trailing ';' with strip method -Phillip Wall
-                    package = line.replace("package ", "").strip(';\r\n')
-                    #1. create a new directory for the package
-                    #2. Move the class file to the package directory
-                    destdir = "{}/{}/{}".format(path, studentname, package)
-
-                    if not os.path.exists(destdir):
-                        os.mkdir(destdir)
-
-                    destFile = destdir + "/%s.java" % className
-
-                    className = package + "." + className
-
-        shutil.copy(origFile, destFile) #Copy the java file to the destination
-
-        #Gets the class list for the student, if the student hasn't been added creates an empty list
-        #Doing it this way allows for multifile java projects
-        tmp.setdefault(studentname, []).append(className)
+        if f[-5:] == '.java': #single file
+            prepare_single_file(studentname, filename, path, f, tmp)
+        elif f[-4:] == '.zip': #zip file
+            prepare_zip_file(studentname, filename, path, f, tmp)
 
     res = []
     for name, cl in tmp.iteritems():
@@ -298,6 +269,72 @@ def prepare_directory(path):
         res.append(student.Student(name, main, cl))
 
     return res
+
+def prepare_zip_file(studentname, filename, path, f, tmp):
+    studentdir = "{}/{}".format(path, studentname)
+    if not os.path.exists(studentdir):
+        os.mkdir(studentdir)
+
+    zip = "{}/{}".format(path, f)
+    zipdir = "{}/{}".format(path, f[:-4])
+    if not os.path.exists(zipdir):
+        os.mkdir(zipdir)
+
+    with zipfile.ZipFile(zip) as z:
+            z.extractall(path=zipdir)
+
+    files = os.listdir(zipdir)
+
+    for f in files:
+        if f[-5:] == '.java':
+            origfile = "{}/{}".format(zipdir, f)
+            destfile = "{}/{}".format(studentdir, f)
+            spath = "{}/{}".format(path, studentname)
+            classname = f[:-5]
+            destfile, classname, package = find_package(origfile, destfile, classname, spath)
+            shutil.copy(origfile, destfile)
+            tmp.setdefault(studentname, []).append(classname)
+    shutil.rmtree(zipdir)
+
+
+def find_package(origfile, destfile, classname, path):
+    classDeclaration = "public class " + classname
+    package = None
+    #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
+    with open(origfile) as fHandle:
+        for line in fHandle:
+            if classDeclaration in line:
+                break
+            if "package " in line:
+                #Strip trailing ';' with strip method -Phillip Wall
+                package = line.replace("package ", "").strip(';\r\n')
+                #1. create a new directory for the package
+                #2. Move the class file to the package directory
+                destdir = "{}/{}".format(path, package)
+
+                if not os.path.exists(destdir):
+                    os.mkdir(destdir)
+
+                destfile = destdir + "/%s.java" % classname
+                classname = package + "." + classname
+                return destfile, classname, package
+    return destfile, classname, package
+
+def prepare_single_file(studentname, filename, path, f, tmp):
+    classname = filename
+    destfile = "{}/{}/{}.java".format(path, studentname, classname)
+    origfile = "{}/{}".format(path, f)
+    spath = "{}/{}".format(path, studentname)
+    studentdir = "{}/{}".format(path, studentname)
+    if not os.path.exists(studentdir):
+        os.mkdir(studentdir)
+
+    destfile, classname, package = find_package(origfile, destfile, classname, spath)
+    shutil.copy(origfile, destfile) #Copy the java file to the destination
+
+    #Gets the class list for the student, if the student hasn't been added creates an empty list
+    #Doing it this way allows for multifile java projects
+    tmp.setdefault(studentname, []).append(classname)
 
 
 if __name__ == "__main__":
