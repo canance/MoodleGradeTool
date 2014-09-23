@@ -237,13 +237,7 @@ class RegexTester(Tester):
 
             #determine if we need to be in a package
             origfile = self.cwd + "/" + "/".join(self.clsName.split(".")) + ".java"
-            print "DEST = " + dst
-            print "CLS  = " + clsname
-            print "CWD  = " + self.cwd
             final_dst, clsname, package = find_package(origfile, dst, clsname, self.cwd)
-            print "DEST = " + dst
-            print "CLS  = " + clsname
-            print "CWD  = " + self.cwd
             if package:
                 print "PACKAGE=" + package
             if package:
