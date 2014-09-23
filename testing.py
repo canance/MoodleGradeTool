@@ -239,8 +239,6 @@ class RegexTester(Tester):
             origfile = self.cwd + "/" + "/".join(self.clsName.split(".")) + ".java"
             final_dst, clsname, package = find_package(origfile, dst, clsname, self.cwd)
             if package:
-                print "PACKAGE=" + package
-            if package:
                 tmp = "{}.tmp".format(dst)
                 with file(dst) as input:
                     with file(tmp, 'w') as output:
@@ -255,7 +253,6 @@ class RegexTester(Tester):
                 #Log entry header
                 log.write('\n\n' + str(datetime.datetime.now()) + '\n')
                 log.write("Starting build of %s.java\n\n" % clsname)
-
                 #Start the build
                 proc = subprocess.Popen(('javac', "/".join(clsname.split(".")) + ".java"),
                                              cwd=self.cwd, stdout=log, stderr=subprocess.STDOUT)
