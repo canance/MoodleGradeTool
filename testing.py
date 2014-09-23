@@ -1,17 +1,43 @@
 __author__ = 'phillip'
 
-import sys, os
+import sys,os
 
 import re
 import subprocess
 import abc
 import filemanager
 import datetime
+import shutil
+
 
 
 testers = set()  # The available test types
 
 tests = {}  # The available tests
+
+
+def find_package(origfile, destfile, classname, path):
+    classDeclaration = "public class " + classname
+    package = None
+    #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
+    with open(origfile) as fHandle:
+        for line in fHandle:
+            if classDeclaration in line:
+                break
+            if "package " in line:
+                #Strip trailing ';' with strip method -Phillip Wall
+                package = line.replace("package ", "").strip(';\r\n')
+                #1. create a new directory for the package
+                #2. Move the class file to the package directory
+                destdir = "{}/{}".format(path, package)
+
+                if not os.path.exists(destdir):
+                    os.mkdir(destdir)
+
+                destfile = destdir + "/%s.java" % classname
+                classname = package + "." + classname
+                return destfile, classname, package
+    return destfile, classname, package
 
 class TesterMeta(abc.ABCMeta):
 
@@ -197,6 +223,7 @@ class RegexTester(Tester):
             src, dst = path
             dst = "%s/%s" % (self.cwd, dst)
             keys.append(filemanager.copy(src, dst))
+            print "DEST = " + dst
 
         #if main class was specified copy it and compile.  Replace self.clsName with main class.
         if self.main is not None:
@@ -207,6 +234,28 @@ class RegexTester(Tester):
             #get classname
             clsname = os.path.basename(dst)
             clsname = clsname[:-5]
+
+            #determine if we need to be in a package
+            origfile = self.cwd + "/" + "/".join(self.clsName.split(".")) + ".java"
+            print "DEST = " + dst
+            print "CLS  = " + clsname
+            print "CWD  = " + self.cwd
+            final_dst, clsname, package = find_package(origfile, dst, clsname, self.cwd)
+            print "DEST = " + dst
+            print "CLS  = " + clsname
+            print "CWD  = " + self.cwd
+            if package:
+                print "PACKAGE=" + package
+            if package:
+                tmp = "{}.tmp".format(dst)
+                with file(dst) as input:
+                    with file(tmp, 'w') as output:
+                        output.write("package {};".format(package))
+                        for line in input:
+                            output.write(line)
+                shutil.copy(tmp, final_dst)
+
+
             #compile
             with open(self.cwd + "/build.log", 'a') as log:  # Open the log file
                 #Log entry header
@@ -226,9 +275,6 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
-        print "Starting test"
-        print "CWD: " + self.cwd
-        print "STDIN: " + self.input_file
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
@@ -247,7 +293,6 @@ class RegexTester(Tester):
         #clean up filemanager
         for key in keys:
             filemanager.clean(key)
-
 
     @staticmethod
     def handlesconfig(fd):
