@@ -7,8 +7,13 @@ import subprocess
 import abc
 import filemanager
 import datetime
+import pexpect, fdpexpect
+import io
+import lxml
 from lxml import etree
 from collections import defaultdict
+
+
 
 FileMapping = filemanager.FileMapping
 
@@ -259,11 +264,81 @@ class RegexTester(Tester):
 
 
 class AdvancedRegexTester(Tester):
+    _score = 0
+
     def possible(self):
         return len(self.tree.xpath('//assert')) + len(self.tree.xpath('//match'))
 
     def start(self):
-        pass
+        main = None  # Placeholder for the main test
+        others = []  # Holds other tests
+        for test in self.tree.xpath('/Test'):  # Get all test nodes
+            if (not 'file' in test.atrib) and not main:  # See if this is the first test with out a filename
+                main = test  # Set it to be the main test
+            else:
+                others.append((test, test.get('file')))  # Append every other test to the others
+
+        java_cls = self.clsName if not self.main is None else self.main  # Get the main java class
+        self._out = io.StringIO()  # Make a stringIO to hold the output
+        proc = pexpect.spawn('java', [java_cls], logfile=self._out, cwd=self.cwd)  # Spawn the java program
+
+        self.do_test(proc, main)  # Do the main test
+
+        for test, fname in others:  # Do the other tests
+            with open(self.cwd + '/' + fname, 'r') as f:  # Open the associated file
+                fexp = fdpexpect.fdspawn(f)  # Spawn an expect instance for the file
+                self.do_test(fexp, test)  # Do the test
+
+    def do_test(self, proc, testroot):
+        assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
+        asserts = {}  # Dict for storing matches used in asserts
+        for exp in testroot.xpath('./Expect'):  # For every Expect node in testroot
+            prmt = False
+            try:
+                if 'prompt' in exp.atrib:  # See if we're expecting a prompt
+                    proc.expect(exp.get('prompt'))  # Get and use the prompt
+                    prmt = True  # Set this to true so we send a new line later
+                else:
+                    proc.expect(pexpect.EOF)  # Else wait until end of file
+            except pexpect.TIMEOUT:
+                break
+            out = proc.before + proc.after  # Get everything before and up to the match
+            for ele in exp:  # For every element int the expect node
+                if ele.tag == "match":  # If its a match tag find the regex
+                    expr = self.regexes[ele.text]  # Get the regex
+                    m = expr.search(out)  # Try to do a match
+                    if m: self._score += 1  # If there is one raise the score
+                    if 'id' in ele.atrib:  # If this match has an id
+                        asserts[ele.get('id')] = m  # Store it for later
+                if ele.tag == "input":  # If its an input tag
+                    txt = ele.text.strip()
+                    #Try to find the input
+                    if txt in self.inputs:
+                        proc.send(self.inputs[txt]+' ')  # Send a normal input followed by a space
+                    elif txt in self.files:
+                        fname = self.files[txt].destination  # If its a file input
+                        proc.send(fname + ' ')  # Send the destination file name
+            if prmt:
+                proc.sendline('')  # If this was a prompt send a new line
+
+        for assr in testroot.xpath('./assert'):  # For every assert tag in the test root
+            m = asserts.get(assr.get('match'), None)  # Get the corresponding match object
+            if not m: continue  # If there was no match continue
+
+            passes = True
+            for grp in assr:  # Get all the match groups
+                id = grp.get('id')  # Get the group id
+                try:
+                    id = int(id)  # Attempt to cast it to an int
+                except ValueError:
+                    pass
+
+                txt = grp.text.strip()  # Strip the match text
+                passes = passes and (m.group(id).strip() == txt)  # See if there is a match
+                if not passes: break  # If we're not passing this assert break
+
+            if passes: self._score += 1  # If the assert passed increase the score
+
 
     def handlesconfig(fd):
         count = 0
@@ -279,26 +354,28 @@ class AdvancedRegexTester(Tester):
     def parse_config(cls, configfile):
         config = etree.parse(configfile)
         ret = {}
-        ret['name'] = config.xpath("/name/text()", smart_strings=False)[0]
+        ret['name'] = config.findtext('name')
+        ret['main'] = config.findtext('main')
         regexes = {}
-        for ele in config.xpath("/Definitions/Regex", smart_strings=False):
-            regexes[ele['id']] = re.compile(ele.text)
+        for ele in config.xpath("/Definitions/Regex"):
+            regexes[ele.atrib['id']] = re.compile(ele.text)
         ret['regexes'] = regexes
         inputs = {}
-        for ele in config.xpath("/Definitions/input", smart_strings=False):
-            inputs[ele['id']] = ele.text
-
+        for ele in config.xpath("/Definitions/input"):
+            inputs[ele.atrib['id']] = ele.text.strip()
+        ret['inputs'] = inputs
         ret['files'] = defaultdict(list)
 
-        for ele in config.xpath("/Definitions/file", smart_strings=False):
-            id = 'Default' if not 'id' in ele.atrib else ele['id']
+        for ele in config.xpath("/Definitions/file"):
+            id = 'Default' if not 'id' in ele.atrib else ele.atrib['id']
             ret['files'][id].append(FileMapping(*[s.strip() for s in ele.text.split(':')]))
 
         ret['tree'] = config
         return ret
 
+    @property
     def score(self):
-        pass
+        return self._score
 
 
 ManualTest.parse_config('Manual')

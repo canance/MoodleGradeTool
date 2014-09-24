@@ -4,6 +4,7 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element maxOccurs="1" minOccurs="1" ref="name"/>
+                <xs:element minOccurs="0" maxOccurs="1" ref="main"/>
                 <xs:element maxOccurs="1" ref="Definitions"/>
                 <xs:element maxOccurs="unbounded" ref="Test"/>
             </xs:sequence>
@@ -12,7 +13,6 @@
     <xs:element name="Definitions">
         <xs:complexType>
             <xs:sequence>
-                <xs:element minOccurs="0" ref="main"/>
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="file"/>
                 <xs:element maxOccurs="unbounded" ref="Regex"/>
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="input"/>

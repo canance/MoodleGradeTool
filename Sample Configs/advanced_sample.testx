@@ -2,8 +2,8 @@
 <!--AdvancedRegexTester-->
 <AdvRegexTester xmlns="http://moodlegradetool.com/advanced_regex">
     <name>Test1</name>
+    <main>Hello</main>
     <Definitions>
-        <main>Hello</main>
         <file id="file1">dummy1.txt:dummy.txt</file>
         <Regex id="reg1">test</Regex>
         <Regex id="reg2">Hello, (.*)</Regex>
