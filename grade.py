@@ -294,13 +294,16 @@ def prepare_zip_file(studentname, filename, path, f, tmp):
     if not os.path.exists(studentdir):
         os.mkdir(studentdir)
 
-    zip = "{}/{}".format(path, f)
-    zipdir = "{}/{}".format(path, f[:-4])
-    if not os.path.exists(zipdir):
-        os.mkdir(zipdir)
+    if f[-4:] == '.zip':
+        zip = "{}/{}".format(path, f)
+        zipdir = "{}/{}".format(path, f[:-4])
+        if not os.path.exists(zipdir):
+            os.mkdir(zipdir)
 
-    with zipfile.ZipFile(zip) as z:
-            z.extractall(path=zipdir)
+        with zipfile.ZipFile(zip) as z:
+                z.extractall(path=zipdir)
+    else:
+        zipdir = f
 
     files = os.listdir(zipdir)
 
@@ -313,6 +316,8 @@ def prepare_zip_file(studentname, filename, path, f, tmp):
             destfile, classname, package = find_package(origfile, destfile, classname, spath)
             shutil.copy(origfile, destfile)
             tmp.setdefault(studentname, []).append(classname)
+        elif os.path.isdir(zipdir + "/" + f):
+            prepare_zip_file(studentname, filename, path, zipdir + "/" + f, tmp)
     shutil.rmtree(zipdir)
 
 
