@@ -8,11 +8,10 @@ import abc
 import filemanager
 import datetime
 import pexpect, fdpexpect
-import io
-import lxml
+import StringIO
 from lxml import etree
 from collections import defaultdict
-
+from functools import partial
 
 
 FileMapping = filemanager.FileMapping
@@ -36,7 +35,6 @@ class TesterMeta(abc.ABCMeta):
             tests[name] = type(name, (cls, ), attrs)  # Create the subclass for the test and register it
 
         cls.parse_config = load_config  # Replace the class's parse_config
-
 
 class Tester(object):
     __metaclass__ = TesterMeta
@@ -262,24 +260,26 @@ class RegexTester(Tester):
     def possible(self):
         return len(self.regexes)
 
-
 class AdvancedRegexTester(Tester):
     _score = 0
 
+    @property
     def possible(self):
-        return len(self.tree.xpath('//assert')) + len(self.tree.xpath('//match'))
+        return len(self.qxpath('//ar:assertion')) + len(self.qxpath('//ar:match'))
 
     def start(self):
         main = None  # Placeholder for the main test
         others = []  # Holds other tests
-        for test in self.tree.xpath('/Test'):  # Get all test nodes
-            if (not 'file' in test.atrib) and not main:  # See if this is the first test with out a filename
+        for test in self.tree.xpath('./ar:Test', namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'}):  # Get all test nodes
+            if (not 'file' in test.attrib) and not main:  # See if this is the first test with out a filename
                 main = test  # Set it to be the main test
             else:
                 others.append((test, test.get('file')))  # Append every other test to the others
 
-        java_cls = self.clsName if not self.main is None else self.main  # Get the main java class
-        self._out = io.StringIO()  # Make a stringIO to hold the output
+        if not main: raise ValueError("Could not find the main test")
+
+        java_cls = self.clsName if not hasattr(self, 'main') is None else self.main  # Get the main java class
+        self._out = StringIO.StringIO()  # Make a stringIO to hold the output
         proc = pexpect.spawn('java', [java_cls], logfile=self._out, cwd=self.cwd)  # Spawn the java program
 
         self.do_test(proc, main)  # Do the main test
@@ -290,27 +290,28 @@ class AdvancedRegexTester(Tester):
                 self.do_test(fexp, test)  # Do the test
 
     def do_test(self, proc, testroot):
-        assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
+        #assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
         asserts = {}  # Dict for storing matches used in asserts
-        for exp in testroot.xpath('./Expect'):  # For every Expect node in testroot
+        qxpath = partial(testroot.xpath, namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'})
+        for exp in qxpath('./ar:Expect'):  # For every Expect node in testroot
             prmt = False
             try:
-                if 'prompt' in exp.atrib:  # See if we're expecting a prompt
+                if 'prompt' in exp.attrib:  # See if we're expecting a prompt
                     proc.expect(exp.get('prompt'))  # Get and use the prompt
                     prmt = True  # Set this to true so we send a new line later
                 else:
                     proc.expect(pexpect.EOF)  # Else wait until end of file
             except pexpect.TIMEOUT:
                 break
-            out = proc.before + proc.after  # Get everything before and up to the match
+            out = proc.before #+ proc.after  # Get everything before and up to the match
             for ele in exp:  # For every element int the expect node
-                if ele.tag == "match":  # If its a match tag find the regex
+                if ele.tag == "{http://moodlegradetool.com/advanced_regex}match":  # If its a match tag find the regex
                     expr = self.regexes[ele.text]  # Get the regex
                     m = expr.search(out)  # Try to do a match
                     if m: self._score += 1  # If there is one raise the score
-                    if 'id' in ele.atrib:  # If this match has an id
+                    if 'id' in ele.attrib:  # If this match has an id
                         asserts[ele.get('id')] = m  # Store it for later
-                if ele.tag == "input":  # If its an input tag
+                if ele.tag == "{http://moodlegradetool.com/advanced_regex}input":  # If its an input tag
                     txt = ele.text.strip()
                     #Try to find the input
                     if txt in self.inputs:
@@ -321,7 +322,7 @@ class AdvancedRegexTester(Tester):
             if prmt:
                 proc.sendline('')  # If this was a prompt send a new line
 
-        for assr in testroot.xpath('./assert'):  # For every assert tag in the test root
+        for assr in qxpath('./ar:assertion'):  # For every assert tag in the test root
             m = asserts.get(assr.get('match'), None)  # Get the corresponding match object
             if not m: continue  # If there was no match continue
 
@@ -339,7 +340,7 @@ class AdvancedRegexTester(Tester):
 
             if passes: self._score += 1  # If the assert passed increase the score
 
-
+    @staticmethod
     def handlesconfig(fd):
         count = 0
         for l in fd:
@@ -352,22 +353,28 @@ class AdvancedRegexTester(Tester):
 
     @classmethod
     def parse_config(cls, configfile):
-        config = etree.parse(configfile)
+        config = etree.parse(configfile).getroot()
+        qxpath = partial(config.xpath, namespaces={'ar':"http://moodlegradetool.com/advanced_regex"})
         ret = {}
-        ret['name'] = config.findtext('name')
-        ret['main'] = config.findtext('main')
+
+        ret['qxpath'] = qxpath
+        ret['name'] = qxpath('./ar:name/text()')[0].strip()
+        main = qxpath('./ar:main/text()')
+        if main:
+            ret['main'] = main[0].strip()
+
         regexes = {}
-        for ele in config.xpath("/Definitions/Regex"):
-            regexes[ele.atrib['id']] = re.compile(ele.text)
+        for ele in qxpath("./ar:Definitions/ar:Regex"):
+            regexes[ele.attrib['id']] = re.compile(ele.text)
         ret['regexes'] = regexes
         inputs = {}
-        for ele in config.xpath("/Definitions/input"):
-            inputs[ele.atrib['id']] = ele.text.strip()
+        for ele in qxpath("./ar:Definitions/ar:input"):
+            inputs[ele.attrib['id']] = ele.text.strip()
         ret['inputs'] = inputs
         ret['files'] = defaultdict(list)
 
-        for ele in config.xpath("/Definitions/file"):
-            id = 'Default' if not 'id' in ele.atrib else ele.atrib['id']
+        for ele in qxpath("./ar:Definitions/ar:file"):
+            id = 'Default' if not 'id' in ele.attrib else ele.attrib['id']
             ret['files'][id].append(FileMapping(*[s.strip() for s in ele.text.split(':')]))
 
         ret['tree'] = config
@@ -381,3 +388,5 @@ class AdvancedRegexTester(Tester):
 ManualTest.parse_config('Manual')
 
 RegexTester.register()
+
+AdvancedRegexTester.register()

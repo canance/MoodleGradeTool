@@ -76,7 +76,7 @@ class TestsSelector(npyscreen.Form):
         tlist = tests.keys()
 
         self.selector = self.add(npyscreen.MultiSelect, name='Select Tests to automatically run: ', values=tlist,
-                                 max_height=len(tlist))
+                                 max_height=len(tlist)+2)
         self.add(npyscreen.FixedText, name="", value="NOTE: You will have the option to run manual later")
 
 

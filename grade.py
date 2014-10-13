@@ -64,7 +64,7 @@ def main():
     os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
     for filename in os.listdir(paths['config']):
-        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
+        if filename.endswith(".test") or filename.endswith(".testx"):  # Find the files that end with .test in the grading dir
             with open(filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
