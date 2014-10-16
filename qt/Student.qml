@@ -24,6 +24,11 @@ Rectangle {
     smooth: true
 
     property string static_state: ""
+    property string disp_name: "Student Name"
+    property string disp_status: "Waiting to build"
+    property int disp_score: 0
+    property int disp_possible: 0
+    state: static_state
 
     MouseArea{
         id: rect1_mouse
@@ -37,17 +42,13 @@ Rectangle {
         }
     }
 
-    property string name: "Student Name"
-    property string status: "Waiting to build"
-    property int score: 0
-    property int possible: 0
 
 
     Text {
         id: txt_name
         x: 8
         y: 8
-        text: name
+        text: disp_name
         font.pointSize: 19
 
     }
@@ -68,7 +69,7 @@ Rectangle {
         id: txt_status
         x: 72
         y: 43
-        text: status
+        text: disp_status
         font.pointSize: 11
 
     }
@@ -87,11 +88,12 @@ Rectangle {
         id: txt_score
         x: 64
         y: 68
-        text: score + '/' + possible
+        text: disp_score + '/' + disp_possible
         font.bold: true
         font.pointSize: 13
 
     }
+
     states: [
         State {
             name: "mouse_over"

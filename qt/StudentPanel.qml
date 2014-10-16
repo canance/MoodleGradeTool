@@ -4,7 +4,6 @@ Item{
     id: mainPanel
     x:0
     y:0
-    width:700
     height: 400
 
     property ListModel students: ListModel {}
@@ -26,17 +25,76 @@ Item{
 
 
         delegate: Student {
-            name: student.name
-            status: student.status_name
-            score: student.score
-            possible: student.possible
-            static_state: student.state
+            disp_name: name
+            disp_status: status_name
+            disp_score: score
+            disp_possible: possible
+            static_state: flag
             width: (grd_students.cellWidth - 15)
             height: (grd_students.cellHeight - 15)
-            property ListModel tests: student.tests
+
 
         }
-        model: students
+        model: ListModel {
+            ListElement {
+                name: "Student"
+                status_name: "Finished"
+                score: 0
+                possible: 1
+                flag: "ready"
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Error"
+                score: 0
+                possible: 1
+                flag: "error"
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+
+            }
+            ListElement {
+                name: "Student"
+                status_name: "Testing"
+                score: 0
+                possible: 1
+
+            }
+           }
     }
 
     Rectangle{
@@ -83,7 +141,7 @@ Item{
 
             PropertyChanges {
                 target: grd_students
-                x: 716
+                x: mainPanel.width + 16
                 opacity: 0
             }
         }

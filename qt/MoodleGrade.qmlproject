@@ -9,6 +9,10 @@ Project {
     QmlFiles {
         directory: "."
     }
+    QmlFiles{
+        directory: ""
+    }
+
     JavaScriptFiles {
         directory: "."
     }

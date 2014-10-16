@@ -78,7 +78,7 @@ Rectangle {
 
             Button {
                 id: btn_start
-                x: 221
+                x: rectangle1.width /3
                 y: 139
                 width: item1.width * .3
                 height: 35
@@ -88,6 +88,8 @@ Rectangle {
 
         StudentPanel {
             id: mainPanel
+            width: rectangle1.width
+
         }
 
 
