@@ -89,6 +89,8 @@ Rectangle {
         StudentPanel {
             id: mainPanel
             width: rectangle1.width
+            sourceText: appdata.sourceText
+            students: studentsList
 
         }
 
@@ -120,31 +122,7 @@ Rectangle {
                     }
                 }
 
-                model: ListModel {
-                    ListElement {
-                        name: "Grey"
-                        score: 0
-                        possible: 0
-                    }
-
-                    ListElement {
-                        name: "Red"
-                        score: 0
-                        possible: 0
-                    }
-
-                    ListElement {
-                        name: "Blue"
-                        score: 0
-                        possible: 0
-                    }
-
-                    ListElement {
-                        name: "Green"
-                        score: 0
-                        possible: 0
-                    }
-                }
+                model: appdata.testResults
 
                 Text {
                     id: text2
@@ -175,14 +153,13 @@ Rectangle {
             }
 
             ListView {
-                id: list_view1
+                id: lstOuputs
                 x: 458
                 y: 70
                 width: 217
                 height: 160
                 highlightRangeMode: ListView.NoHighlightRange
                 delegate: Item {
-                    x: 5
                     height: 15
                     Row {
                         id: row1
@@ -193,27 +170,7 @@ Rectangle {
                         }
                     }
                 }
-                model: ListModel {
-                    ListElement {
-                        name: "Grey"
-                        colorCode: "grey"
-                    }
-
-                    ListElement {
-                        name: "Red"
-                        colorCode: "red"
-                    }
-
-                    ListElement {
-                        name: "Blue"
-                        colorCode: "blue"
-                    }
-
-                    ListElement {
-                        name: "Green"
-                        colorCode: "green"
-                    }
-                }
+                model: ListModel{}
 
                 Text {
                     id: text3
@@ -226,6 +183,4 @@ Rectangle {
             }
         }
     }
-
-
 }

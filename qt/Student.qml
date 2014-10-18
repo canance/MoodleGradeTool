@@ -23,24 +23,47 @@ Rectangle {
     visible: true
     smooth: true
 
+    signal wasSelected(int id)
     property string static_state: ""
     property string disp_name: "Student Name"
     property string disp_status: "Waiting to build"
     property int disp_score: 0
     property int disp_possible: 0
+    property int std_id: 0
+    property bool selected: false
     state: static_state
+    Binding {
+        target: rectangle1
+        property: "state"
+        value: static_state
+        when: !(selected || rect1_mouse.containsMouse)
+    }
 
     MouseArea{
         id: rect1_mouse
         anchors.fill: parent
         hoverEnabled: true
         onHoveredChanged: {
-            if (rectangle1.state == rectangle1.static_state)
+            if ((rectangle1.state == rectangle1.static_state) || selected) {
                 rectangle1.state = "mouse_over"
-            else
+            }
+            else if (selected) {
+                rectangle1.state = "selected"
+            }
+            else {
                 rectangle1.state = rectangle1.static_state
+            }
+        }
+        onClicked: {
+            wasSelected(std_id)
         }
     }
+
+    function handleSelected(sender){
+        selected = rectangle1.std_id === sender
+    }
+
+
 
 
 

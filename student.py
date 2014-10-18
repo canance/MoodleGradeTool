@@ -48,7 +48,8 @@ class StudentState(Enum):
 class Student(object):
     tests = []
 
-    def __init__(self, name, main_class, otherclasses=None):
+    def __init__(self, name, main_class, otherclasses=None, **kwargs):
+        super(Student, self).__init__(**kwargs)
         self.name = name
         self.java_class = main_class
         self.classlist = otherclasses if not otherclasses is None else []
