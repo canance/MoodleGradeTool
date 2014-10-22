@@ -2,7 +2,6 @@ import QtQuick 1.1
 
 Item{
     id: check1
-    height: 40
 
     property bool checked: false
     property string text: "Checkbox"
@@ -10,6 +9,7 @@ Item{
     property color uncheckedColor: "#a8a4a4"
     property color checkedColor: "#004684"
     width: text1.width + text1.x
+    height: (rectangle1.height + rectangle1.y) > (text1.height + text1.y)?(rectangle1.height + rectangle1.y):(text1.height + text1.y)
 
     onCheckedChanged: {
         if (checked && state != "checked"){
@@ -35,10 +35,7 @@ Item{
             anchors.fill: parent
 
             onClicked: {
-                if (check1.state == "")
-                    check1.state = "checked"
-                else
-                    check1.state = ""
+                check1.checked = !checked
             }
         }
     }
@@ -58,7 +55,7 @@ Item{
 
             PropertyChanges {
                 target: check1
-                checked: true
+                //checked: true
             }
 
             PropertyChanges {

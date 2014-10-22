@@ -7,11 +7,12 @@ Rectangle {
     width: 106
     height: 35
     radius: 9
+    smooth: true
     gradient: Gradient {
         GradientStop {
             id: gradtop
             position: 0
-            color: "#c4c3c3"
+            color: "#9bb7c2"
         }
 
         GradientStop {
@@ -24,12 +25,20 @@ Rectangle {
     signal clicked()
 
     property string prompt: "Click Here"
+    property bool enabled: true
+
+    onEnabledChanged: {
+        if (enabled)
+            state = ""
+        else
+            state = "disabled"
+    }
 
     Text {
         id: txt_text
         text: prompt
         horizontalAlignment: Text.AlignHCenter
-        font.bold: false
+        font.bold: true
         smooth: true
         verticalAlignment: Text.AlignVCenter
         anchors.fill: parent
@@ -84,6 +93,27 @@ Rectangle {
                 target: gradbottom
                 position: 0
 
+            }
+        },
+        State {
+            name: "disabled"
+
+            PropertyChanges {
+                target: mousearea1
+                hoverEnabled: false
+                enabled: false
+            }
+
+            PropertyChanges {
+                target: gradbottom
+                color: "#414141"
+            }
+
+            PropertyChanges {
+                target: txt_text
+                color: "#555555"
+                font.bold: false
+                style: "Sunken"
             }
         }
     ]

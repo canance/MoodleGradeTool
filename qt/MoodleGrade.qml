@@ -4,18 +4,38 @@ import QtQuick 1.1
 
 Rectangle {
     id: rectangle1
-    width: 700
+    width: 983
     height: 900
     color: "#2b2828"
 
+    signal studentSelected(int id)
+    signal parseTests()
+    signal startTesting()
+    signal gradeFolderBrowse()
+    signal testFolderBrowse()
+
+    property string gradeFolder: input_grade.text
+    property string testFolder: chkUseGrade.checked?gradeFolder:input_test.text
+
+    function updateGradeFolder(path){
+        input_grade.text = path
+    }
+
+    function updateTestFolder(path){
+        input_test.text = path
+    }
+
+
     Column {
         id: column1
-        anchors.fill: parent
+        width: rectangle1.width - 295
+        height: parent.height
+        z: 1
 
         Item {
             id: item1
             x: 0
-            width: rectangle1.width
+            width: column1.width
             height: 200
             anchors.top: parent.top
             anchors.topMargin: 0
@@ -27,7 +47,7 @@ Rectangle {
                 width: item1.width - (x + 106 + 20)
                 height: 20
                 color: "#a6a4a4"
-                text: qsTr("Text")
+                text: "/tmp/grade"
                 font.pointSize: 11
 
                 Text {
@@ -54,8 +74,10 @@ Rectangle {
                 y: 107
                 width: item1.width - (x + 106 + 20)
                 height: 20
-                color: "#a6a4a4"
-                text: qsTr("Text")
+                color: chkUseGrade.checked?"#FFFFFF":"#a6a4a4"
+                text: "/tmp/"
+                font.italic: chkUseGrade.checked
+                readOnly: chkUseGrade.checked
                 font.pointSize: 11
 
                 Button {
@@ -64,6 +86,8 @@ Rectangle {
                     y: -15
                     smooth: true
                     prompt: "Browse..."
+                    enabled: !chkUseGrade.checked
+
                 }
 
                 Text {
@@ -71,26 +95,58 @@ Rectangle {
                     x: 0
                     y: -26
                     color: "#ffffff"
-                    text: qsTr("Configuration Folder (Default: Grading folder)")
+                    text: qsTr("Configuration Folder")
                     font.pointSize: 13
+                }
+
+                CheckBox {
+                    id: chkUseGrade
+                    x: 187
+                    y: -58
+                    text: "Use grading folder"
+                    checked: true
+                    anchors.verticalCenter: text4.verticalCenter
+
                 }
             }
 
             Button {
                 id: btn_start
-                x: rectangle1.width /3
-                y: 139
-                width: item1.width * .3
-                height: 35
+                x: 206
+                y: 142
+                width: item1.width * .2
+                height: 41
+                anchors.horizontalCenterOffset: -(width/2 + 5)
+                anchors.horizontalCenter: parent.horizontalCenter
                 prompt: "Start"
+                enabled: false
+                onClicked: {
+                    startTesting()
+                }
+            }
+
+            Button {
+                id: button1
+                x: 345
+                y: 142
+                width: parent.width * .2
+                height: 41
+                prompt: "Reload\n Configuration"
+                anchors.horizontalCenterOffset: (width/2 + 5)
+                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
 
         StudentPanel {
             id: mainPanel
-            width: rectangle1.width
+            width: column1.width
+            clip: false
             sourceText: appdata.sourceText
             students: studentsList
+
+            onCurrentStudentChanged: {
+                studentSelected(currentStudent)
+            }
 
         }
 
@@ -100,14 +156,14 @@ Rectangle {
             id: item2
             x: 0
             y: 580
-            width: 700
+            width: column1.width
             height: 300
 
             ListView {
                 id: lst_tests
                 x: 29
                 y: 70
-                width: 221
+                width: btnOutput.x - x -5
                 height: 160
                 delegate: Item {
                     width: lst_tests.width
@@ -136,11 +192,12 @@ Rectangle {
             }
 
             Button {
-                id: button1
-                x: 256
+                id: btnOutput
+                x: 261
                 y: 8
                 width: 189
                 height: 35
+                anchors.horizontalCenter: parent.horizontalCenter
                 prompt: "View Output"
 
                 onClicked: {
@@ -154,9 +211,9 @@ Rectangle {
 
             ListView {
                 id: lstOuputs
-                x: 458
+                x: btnOutput.x+btnOutput.width+15
                 y: 70
-                width: 217
+                width: parent.width - x - 20
                 height: 160
                 highlightRangeMode: ListView.NoHighlightRange
                 delegate: Item {
@@ -174,12 +231,115 @@ Rectangle {
 
                 Text {
                     id: text3
-                    x: 141
+                    x: parent.width - width
                     y: -36
                     color: "#959393"
                     text: qsTr("Outputs")
                     font.pointSize: 14
                 }
+            }
+        }
+    }
+
+    Rectangle {
+        id: rectangle2
+        x: column1.x
+        y: column1.y
+        width: column1.width
+        height: column1.height
+        radius: 3
+        smooth: true
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: "#a6a5a5"
+            }
+
+            GradientStop {
+                position: 0.02
+                color: "#383535"
+            }
+
+            GradientStop {
+                position: 0.97
+                color: "#383535"
+            }
+
+            GradientStop {
+                position: 1
+                color: "#a6a5a5"
+            }
+        }
+        z: 0
+    }
+
+    ListView {
+        id: lstTests
+        x: column1.width + 30
+        y: 82
+        width: 243
+        height: 592
+        smooth: false
+        z: 2
+        spacing: 1
+        delegate: CheckBox{
+            id: chkTest
+            text: name
+
+            Binding{
+                target: obj
+                property: "selected"
+                value: chkTest.checked
+            }
+            onCheckedChanged: {
+                btnChangeTests.enabled = true
+            }
+        }
+
+        model: ListModel {
+            ListElement {
+                name: "Grey"
+                colorCode: "grey"
+            }
+
+            ListElement {
+                name: "Red"
+                colorCode: "red"
+            }
+
+            ListElement {
+                name: "Blue"
+                colorCode: "blue"
+            }
+
+            ListElement {
+                name: "Green"
+                colorCode: "green"
+            }
+        }
+
+        Text {
+            id: text5
+            x: 0
+            y: -36
+            color: "#ffffff"
+            text: qsTr("Tests")
+            font.bold: true
+            font.pointSize: 14
+        }
+
+        Button {
+            id: btnChangeTests
+            x: 40
+            y: 605
+            width: 163
+            height: 35
+            prompt: "Change Selection"
+            enabled: false
+
+            onClicked: {
+                parseTests()
+                btn_start.enabled = true
             }
         }
     }

@@ -71,7 +71,9 @@ Rectangle {
         id: txt_name
         x: 8
         y: 8
+        color: "#d1d1d1"
         text: disp_name
+        style: Text.Sunken
         font.pointSize: 19
 
     }

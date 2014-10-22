@@ -4,6 +4,7 @@ Item{
     id: mainPanel
     x:0
     y:0
+    width: 100
     height: 400
 
     property QtObject students: ListModel {
@@ -89,12 +90,12 @@ Item{
         id: grd_students
         x: 5
         y: 5
-        width: mainPanel.width
+        width: mainPanel.width - 5
         height: mainPanel.height
         cellWidth: (grd_students.width - 30) / 2
         cellHeight: (grd_students.height - 40) / 3
         visible: true
-        clip: false
+        clip: true
         opacity: 1
         flow: GridView.TopToBottom
         z: 0
