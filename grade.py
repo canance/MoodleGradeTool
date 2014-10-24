@@ -17,10 +17,12 @@ import re
 import student
 import argparse
 
-from testing import tests, testers
+from testing import tests, findtests
 
 from threading import Thread
 from Queue import Queue
+
+Student = student.Student
 
 MAX_BUILDS = 5
 
@@ -56,22 +58,14 @@ def main():
             z.extractall(path=path[:-4])  # Extract the files
 
         path = path[:-4]  # Set path to newly created directory
-	paths['folder'] = path
+    paths['folder'] = path
 
     if '.zip' == paths['config'][-4:]:
         paths['config'] = paths['config'][:-4]
 
     os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
-    for filename in os.listdir(paths['config']):
-        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(filename, 'r') as f:  # Open the file
-                for tester in testers:
-                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(filename)  # If they do, give them the file path to parse
-                        break
-                    else:
-                        f.seek(0)  # Need to reset the file position for next check
+    findtests(paths['config'])
 
     os.chdir(paths['folder'])  # Change to the grading directory
 
@@ -293,7 +287,7 @@ def prepare_directory(path):
     res = []
     for name, cl in tmp.iteritems():
         main = cl.pop(0)  # Assume first class is the main one
-        res.append(student.Student(name, main, cl))
+        res.append(Student(name, main, cl))
 
     return res
 

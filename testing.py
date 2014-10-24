@@ -13,6 +13,19 @@ testers = set()  # The available test types
 
 tests = {}  # The available tests
 
+def findtests(path):
+    tests.clear()
+    for filename in os.listdir(path):
+        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
+            with open(filename, 'r') as f:  # Open the file
+                for tester in testers:
+                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
+                        tester.parse_config(filename)  # If they do, give them the file path to parse
+                        break
+                    else:
+                        f.seek(0)  # Need to reset the file position for next check
+
+
 class TesterMeta(abc.ABCMeta):
 
     def __init__(cls, clsname, bases, attr):
@@ -39,6 +52,7 @@ class Tester(object):
         self.student = student
         self.clsName = clsName
         self.cwd = os.path.abspath(self.cwd.format(student=student, cls=clsName))
+        self._score = 0
 
     @abc.abstractmethod
     def start(self):

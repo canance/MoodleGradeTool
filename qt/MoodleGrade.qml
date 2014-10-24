@@ -16,6 +16,21 @@ Rectangle {
 
     property string gradeFolder: input_grade.text
     property string testFolder: chkUseGrade.checked?gradeFolder:input_test.text
+    property QtObject studentsList: ListModel {}
+    property QtObject outputs: ListModel {}
+    property QtObject testResults: ListModel {}
+
+    function updateStudents(list){
+        studentsList = list
+    }
+
+    function updateOutputs(list){
+        outputs = list
+    }
+
+    function updateTestResults(list){
+        testResults = list
+    }
 
     function updateGradeFolder(path){
         input_grade.text = path
@@ -141,7 +156,6 @@ Rectangle {
             id: mainPanel
             width: column1.width
             clip: false
-            sourceText: appdata.sourceText
             students: studentsList
 
             onCurrentStudentChanged: {
@@ -178,7 +192,7 @@ Rectangle {
                     }
                 }
 
-                model: appdata.testResults
+                model: testResults
 
                 Text {
                     id: text2
@@ -218,16 +232,25 @@ Rectangle {
                 highlightRangeMode: ListView.NoHighlightRange
                 delegate: Item {
                     height: 15
-                    Row {
-                        id: row1
-                        Text {
-                            text: name
-                            font.bold: true
-                            font.pointSize: 13
-                        }
+                    width: lstOuputs.width
+
+                    Text {
+                        id: txtOutName
+                        text: obj.name
                     }
+
+                    property bool currentItm: ListView.isCurrentItem
+
+                    Binding {
+                        target: mainPanel
+                        property: "sourceText"
+                        value: obj.output
+                        when: currentItm
+                    }
+
                 }
-                model: ListModel{}
+
+                model: outputs
 
                 Text {
                     id: text3

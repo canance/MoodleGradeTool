@@ -35,7 +35,7 @@ class AppData(QObject):
 
     def setTests(self, value):
         if isinstance(value, Student):
-            self._tests = [TestWrapper(t) for t in value.tests]
+            self._tests = value.tests
         else:
             self._tests = value
         self._outputs = []
@@ -69,11 +69,12 @@ def initalize_view():
         return mainview
     app = QApplication(argv)
     mainview = QDeclarativeView()
-    mainctx = mainview.rootContext()
-    mainctx.setContextProperty("studentsList", AppData.students)
-    mainctx.setContextProperty("appdata", AppData)
     url = QUrl.fromLocalFile("./MoodleGrade.qml")
     mainview.setSource(url)
+    mainctx = mainview.rootContext()
+    root = mainview.rootObject()
+    root.updateStudents(AppData._students)
+
 
 if __name__ == "__main__":
     initalize_view()

@@ -144,6 +144,12 @@ class Student(object):
 
         return self._state
 
+    @property
+    def source(self):
+        with open(self.directory+"/"+self.java_class+".java", 'r') as f:
+            ret = f.read()
+        return ret
+
     @state.setter
     def state(self, value):
         self._state = value

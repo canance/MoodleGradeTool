@@ -1,7 +1,9 @@
 __author__ = 'phillip'
 
 import __init__
+import qt_wrappers
 import student
+import threading
 import PySide.QtCore as QtCore
 from PySide.QtCore import Property as QProperty, Signal, Slot, QObject, QAbstractListModel
 
@@ -14,7 +16,14 @@ def _sig_decorator(sig):
         return signal_function
     return dec
 
-#TODO Needs to emit score changed signal when tests are run
+def proc_wait_sig(proc, sig):
+    proc.wait()
+    sig.emit()
+
+class SourceOutput(QObject):
+    name = ""
+    output = ""
+
 class QMLStudent(student.Student, QObject):
 
     lastid = 0
@@ -31,9 +40,23 @@ class QMLStudent(student.Student, QObject):
         super(QMLStudent, self).__init__(**kwargs)
         self._id = self.getid()
 
+    def dobuild(self):
+        super(QMLStudent, self).dobuild()
+        threading.Thread(target=proc_wait_sig, args=(self.proc, self.status_nameChanged))
+
+    def dotests(self):
+        super(QMLStudent, self).dotests()
+        self.scoreChanged.emit()
+
+    def dotest(self, cls):
+        super(QMLStudent, self).dotest(cls)
+        self.scoreChanged.emit()
+        self.possibleChanged.emit()
+
+
     @Slot()
     def reload_tests(self):
-        self.tests = [t(self.name, self.java_class) for t in student.Student.tests]
+        self.tests = [qt_wrappers.TestWrapper(t(self.name, self.java_class)) for t in student.Student.tests]
         self.state = student.StudentState.testing
         self.scoreChanged.emit()
         self.possibleChanged.emit()
@@ -75,6 +98,13 @@ class QMLStudent(student.Student, QObject):
     def getStudentID(self):
         return self._id
 
+    @property
+    def sourceobject(self):
+        ret = SourceOutput()
+        ret.name = self.name
+        ret.output = self.source
+        return ret
+
     @student.Student.state.setter
     def state(self, st):
         self._state = st
@@ -103,7 +133,7 @@ class StudentQList(QAbstractListModel):
         super(StudentQList, self).__init__(**kwargs)
         self.COL = dict(enumerate(StudentQList.COL))
         self.setRoleNames(self.COL)
-        self._list = l
+        self._list = list(l)
 
     def rowCount(self, *args, **kwargs):
         return len(self._list)
