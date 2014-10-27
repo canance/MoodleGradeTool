@@ -1,6 +1,5 @@
 __author__ = 'phillip'
 
-import __init__
 import qt_wrappers
 import student
 import threading
@@ -24,6 +23,9 @@ class SourceOutput(QObject):
     name = ""
     output = ""
 
+    def __init__(self, **kwargs):
+        super(SourceOutput, self).__init__(**kwargs)
+
 class QMLStudent(student.Student, QObject):
 
     lastid = 0
@@ -36,8 +38,8 @@ class QMLStudent(student.Student, QObject):
     flagChanged = Signal()
     studentIDChanged = Signal()
 
-    def __init__(self, **kwargs):
-        super(QMLStudent, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(QMLStudent, self).__init__(*args, **kwargs)
         self._id = self.getid()
 
     def dobuild(self):

@@ -10,12 +10,14 @@ Rectangle {
 
     signal studentSelected(int id)
     signal parseTests()
+    signal setupTests()
     signal startTesting()
     signal gradeFolderBrowse()
     signal testFolderBrowse()
 
     property string gradeFolder: input_grade.text
     property string testFolder: chkUseGrade.checked?gradeFolder:input_test.text
+    property QtObject testList: ListModel{}
     property QtObject studentsList: ListModel {}
     property QtObject outputs: ListModel {}
     property QtObject testResults: ListModel {}
@@ -38,6 +40,10 @@ Rectangle {
 
     function updateTestFolder(path){
         input_test.text = path
+    }
+
+    function updateTestList(list){
+        testList = list
     }
 
 
@@ -80,6 +86,9 @@ Rectangle {
                     y: -7
                     smooth: true
                     prompt: "Browse..."
+                    onClicked: {
+                        gradeFolderBrowse()
+                    }
                 }
             }
 
@@ -102,6 +111,9 @@ Rectangle {
                     smooth: true
                     prompt: "Browse..."
                     enabled: !chkUseGrade.checked
+                    onClicked: {
+                        testFolderBrowse()
+                    }
 
                 }
 
@@ -149,6 +161,10 @@ Rectangle {
                 prompt: "Reload\n Configuration"
                 anchors.horizontalCenterOffset: (width/2 + 5)
                 anchors.horizontalCenter: parent.horizontalCenter
+
+                onClicked: {
+                    parseTests()
+                }
             }
         }
 
@@ -310,7 +326,7 @@ Rectangle {
             text: name
 
             Binding{
-                target: obj
+                target: Obj
                 property: "selected"
                 value: chkTest.checked
             }
@@ -319,27 +335,7 @@ Rectangle {
             }
         }
 
-        model: ListModel {
-            ListElement {
-                name: "Grey"
-                colorCode: "grey"
-            }
-
-            ListElement {
-                name: "Red"
-                colorCode: "red"
-            }
-
-            ListElement {
-                name: "Blue"
-                colorCode: "blue"
-            }
-
-            ListElement {
-                name: "Green"
-                colorCode: "green"
-            }
-        }
+        model: testList
 
         Text {
             id: text5
@@ -361,7 +357,7 @@ Rectangle {
             enabled: false
 
             onClicked: {
-                parseTests()
+                setupTests()
                 btn_start.enabled = true
             }
         }

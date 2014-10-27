@@ -17,10 +17,10 @@ def findtests(path):
     tests.clear()
     for filename in os.listdir(path):
         if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(filename, 'r') as f:  # Open the file
+            with open(path + '/' + filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(filename)  # If they do, give them the file path to parse
+                        tester.parse_config(path+ '/' + filename)  # If they do, give them the file path to parse
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check

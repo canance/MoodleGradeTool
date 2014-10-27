@@ -9,6 +9,29 @@ def wrapped_start(self):
     self.start_bak()
     self.qt_signal.emit()
 
+class TestClassWrapper(QObject):
+
+    _selected = False
+    nameChanged = Signal()
+    selectedChanged = Signal()
+
+    def __init__(self, test, **kwargs):
+        super(TestClassWrapper, self).__init__(**kwargs)
+        self.test = test
+
+    def getName(self):
+        return self.test.name
+
+    def getSelected(self):
+        return self._selected
+
+    def setSelected(self, val):
+        self._selected = val
+        self.selectedChanged.emit()
+
+    name = QProperty(str, getName, notify=nameChanged)
+    selected = QProperty(bool, getSelected, setSelected, notify=selectedChanged)
+
 class TestWrapper(QObject):
 
     testSig = Signal()
@@ -47,7 +70,7 @@ class TestWrapper(QObject):
     possible = QProperty(int, getPossible, notify=testSig)
 
 class ObjectListModel(QAbstractListModel):
-    COL = ("Obj")
+    COL = ("Obj", "name")
     def __init__(self, l, **kwargs):
         super(ObjectListModel, self).__init__(**kwargs)
         self.COL = dict(enumerate(ObjectListModel.COL))
@@ -58,4 +81,13 @@ class ObjectListModel(QAbstractListModel):
         return len(self._list)
 
     def data(self, index, role, *args, **kwargs):
-        return self._list[index.row()]
+        res = None
+        for rid, name in self.COL.iteritems():
+            if role == rid:
+                if name == "Obj":
+                    res =  self._list[index.row()]
+                    break
+                res = self._list[index.row()].property(name)
+                break
+        print res
+        return res

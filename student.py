@@ -95,7 +95,7 @@ class Student(object):
         """
         Builds the program.
         """
-        self.state = StudentState.building  # Set state to building
+
         try:
             with open(self.directory + "/build.log", 'a') as log:  # Open the log file
                 #Log entry header
@@ -105,6 +105,7 @@ class Student(object):
                 #Start the build
                 self.proc = subprocess.Popen(('javac', "/".join(self.java_class.split(".")) + ".java"),
                                              cwd=self.directory, stdout=log, stderr=subprocess.STDOUT)
+                self.state = StudentState.building  # Set state to building
         except Exception as ex:
             self.state = StudentState.build_error
             raise ex

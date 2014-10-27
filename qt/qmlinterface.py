@@ -8,6 +8,7 @@ from PySide.QtDeclarative import QDeclarativeView
 import PySide.QtDeclarative
 import QMLStudent
 import student
+import qtdispatch
 from sys import argv, exit
 from qt_wrappers import *
 from student import Student
@@ -64,23 +65,22 @@ AppData = AppData()
 
 
 def initalize_view():
-    global mainview, mainctx, app
     if not mainview is None:
         return mainview
     app = QApplication(argv)
-    mainview = QDeclarativeView()
-    url = QUrl.fromLocalFile("./MoodleGrade.qml")
-    mainview.setSource(url)
-    mainctx = mainview.rootContext()
-    root = mainview.rootObject()
-    root.updateStudents(AppData._students)
+    ret = QDeclarativeView()
+    url = QUrl.fromLocalFile("./qt/MoodleGrade.qml")
+    ret.setSource(url)
+    return app, ret
 
 
 if __name__ == "__main__":
-    initalize_view()
+    app, mainview = initalize_view()
+    mainview.updateStudentsList(AppData.getStudents())
     mainview.show()
     AppData.setSourceText("Update Test")
     stud = AppData._test_students[0]
     stud.setName("Phillip Wall")
     stud.state = student.StudentState.ready
+    dispatch = qtdispatch.QTDispatcher(mainview)
     exit(app.exec_())
