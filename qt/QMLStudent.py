@@ -15,16 +15,29 @@ def _sig_decorator(sig):
         return signal_function
     return dec
 
-def proc_wait_sig(proc, sig):
+def proc_wait_sig(proc, sig, student):
+    print 'Entering proc sig...'
     proc.wait()
-    sig.emit()
+    sig.emit(student)
+    print "Signal emitted"
 
 class SourceOutput(QObject):
-    name = ""
-    output = ""
+    _name = ""
+    _output = ""
 
+    srcOutput = Signal()
     def __init__(self, **kwargs):
         super(SourceOutput, self).__init__(**kwargs)
+
+    def getName(self):
+        return self._name
+    def getOutput(self):
+        return self._output
+
+    name = QProperty(str, getName, notify=srcOutput)
+    output = QProperty(str, getOutput, notify=srcOutput)
+
+
 
 class QMLStudent(student.Student, QObject):
 
@@ -32,7 +45,7 @@ class QMLStudent(student.Student, QObject):
     allotedids = set()
 
     nameChanged = Signal()
-    status_nameChanged = Signal()
+    status_nameChanged = Signal(QObject)
     scoreChanged = Signal()
     possibleChanged = Signal()
     flagChanged = Signal()
@@ -44,7 +57,7 @@ class QMLStudent(student.Student, QObject):
 
     def dobuild(self):
         super(QMLStudent, self).dobuild()
-        threading.Thread(target=proc_wait_sig, args=(self.proc, self.status_nameChanged))
+        threading.Thread(target=proc_wait_sig, args=(self.proc, self.status_nameChanged, self)).start()
 
     def dotests(self):
         super(QMLStudent, self).dotests()
@@ -103,14 +116,14 @@ class QMLStudent(student.Student, QObject):
     @property
     def sourceobject(self):
         ret = SourceOutput()
-        ret.name = self.name
-        ret.output = self.source
+        ret._name = self.name
+        ret._output = self.source
         return ret
 
     @student.Student.state.setter
     def state(self, st):
         self._state = st
-        self.status_nameChanged.emit()
+        self.status_nameChanged.emit(self)
         self.flagChanged.emit()
 
     @classmethod

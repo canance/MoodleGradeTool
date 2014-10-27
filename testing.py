@@ -15,6 +15,8 @@ tests = {}  # The available tests
 
 def findtests(path):
     tests.clear()
+    olddir = os.curdir
+    os.chdir(path)
     for filename in os.listdir(path):
         if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
             with open(path + '/' + filename, 'r') as f:  # Open the file
@@ -24,6 +26,7 @@ def findtests(path):
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
+    os.chdir(olddir)
 
 
 class TesterMeta(abc.ABCMeta):
@@ -240,6 +243,8 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
+        if not hasattr(self, 'input_file'):
+            self.input_file = self.clsName
 
         with open(self.input_file) as f:
             try:

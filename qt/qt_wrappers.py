@@ -89,5 +89,4 @@ class ObjectListModel(QAbstractListModel):
                     break
                 res = self._list[index.row()].property(name)
                 break
-        print res
         return res

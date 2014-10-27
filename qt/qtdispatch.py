@@ -4,6 +4,7 @@ from PySide.QtCore import QObject, Slot, Signal
 from PySide.QtGui import QFileDialog
 import __init__
 from QMLStudent import StudentQList, QMLStudent
+from student import StudentState
 from qt_wrappers import TestWrapper, TestClassWrapper, ObjectListModel
 from testing import findtests, tests
 from grade import prepare_directory
@@ -33,6 +34,7 @@ class QTDispatcher(QObject):
         root.startTesting.connect(self.starttests)
         root.gradeFolderBrowse.connect(self.gradebrowse)
         root.testFolderBrowse.connect(self.testbrowse)
+        root.setupTests.connect(self.setuptests)
 
         self.resultsUpdated.connect(root.updateTestResults)
         self.outputsUpdated.connect(root.updateOutputs)
@@ -56,7 +58,7 @@ class QTDispatcher(QObject):
     def studentchanged(self, id):
         curStudent = None
         for student in __init__.studentslist:
-            if student.getStudentId() == id:
+            if student.getStudentID() == id:
                 curStudent = student
                 break
 
@@ -84,9 +86,18 @@ class QTDispatcher(QObject):
             self.populate_students()
 
         for student in __init__.studentslist:
+            student.status_nameChanged.connect(self.starttest)
             student.dobuild()
-            student.dotests()
+
+
         self._root.startTesting.connect(self.starttests)
+
+    @Slot(QObject)
+    def starttest(self, student):
+        if student.state == StudentState.build_error or student.state == StudentState.not_tested:
+            student.status_nameChanged.disconnect(self.starttest)
+        if student.state == StudentState.not_tested:
+            student.dotests()
 
     @Slot()
     def setuptests(self):

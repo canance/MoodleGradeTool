@@ -147,7 +147,8 @@ class Student(object):
 
     @property
     def source(self):
-        with open(self.directory+"/"+self.java_class+".java", 'r') as f:
+        java_path = "/".join(self.java_class.split('.'))
+        with open(self.directory+"/"+java_path+".java", 'r') as f:
             ret = f.read()
         return ret
 

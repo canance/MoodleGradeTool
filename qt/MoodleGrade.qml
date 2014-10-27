@@ -200,10 +200,10 @@ Rectangle {
                     height: 12
 
                     Text {
-                        text: name
+                        text: Obj.name
                     }
                     Text {
-                        text: score + '/' + possible
+                        text: Obj.score + '/' + Obj.possible
                         x: lst_tests.width - 30
                     }
                 }
@@ -252,7 +252,7 @@ Rectangle {
 
                     Text {
                         id: txtOutName
-                        text: obj.name
+                        text: Obj.name
                     }
 
                     property bool currentItm: ListView.isCurrentItem
@@ -260,7 +260,7 @@ Rectangle {
                     Binding {
                         target: mainPanel
                         property: "sourceText"
-                        value: obj.output
+                        value: Obj.output
                         when: currentItm
                     }
 
@@ -324,14 +324,10 @@ Rectangle {
         delegate: CheckBox{
             id: chkTest
             text: name
-
-            Binding{
-                target: Obj
-                property: "selected"
-                value: chkTest.checked
-            }
+            property QtObject object: Obj
             onCheckedChanged: {
                 btnChangeTests.enabled = true
+                object.selected = checked
             }
         }
 
