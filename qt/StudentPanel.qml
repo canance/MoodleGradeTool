@@ -7,6 +7,7 @@ Item{
     width: 100
     height: 400
 
+    //The students list
     property QtObject students: ListModel {
         ListElement {
             name: "Student"
@@ -77,15 +78,17 @@ Item{
         }
        }
 
-    property int currentStudent: -1
-    property string sourceText: "Source goes here"
-    signal selectedChanged
+
+    property int currentStudent: -1 //The id of the selected student
+    property string sourceText: "Source goes here" //The text that goes in the source text box
+    signal selectedChanged //Signal that the selected student changed
 
     function changeSelect(sender){
-        currentStudent = sender
-        selectedChanged()
+        currentStudent = sender //Change the current student property
+        selectedChanged() //Fire selected changed signal
     }
 
+    //Students list view
     GridView {
         id: grd_students
         x: 5
@@ -100,32 +103,39 @@ Item{
         flow: GridView.TopToBottom
         z: 0
 
-
+        //Object to create for each item in model
         delegate: Student {
             id: stud1
+
+            //Property bindings
             disp_name: studentObj.studentName
             disp_status: studentObj.status_name
             disp_score: studentObj.totalScore
             disp_possible: studentObj.totalPossible
             static_state: studentObj.flag
             std_id: studentObj.studentID
+
             width: (grd_students.cellWidth - 15)
             height: (grd_students.cellHeight - 15)
 
+            //Connect Current Student property change to each student's handleSelected method
             Connections{
                 target: mainPanel
                 onCurrentStudentChanged: stud1.handleSelected(currentStudent)
             }
 
+            //Call changeSelect function on this students wasSelected signal
             onWasSelected: {
                 changeSelect(std_id)
             }
 
         }
 
+        //Set data model to students
         model: students
     }
 
+    //Output text box
     Rectangle{
         id: txtPanel
         color: "white"
@@ -143,7 +153,7 @@ Item{
         border.width: 3
         border.color: "#6974a8"
 
-
+        //Text box for output
         TextEdit {
             id: text_edit1
             readOnly: true
@@ -158,7 +168,9 @@ Item{
         }
     }
 
+    //States
     states: [
+        //Shows the output textbox
         State {
             name: "output"
 
@@ -176,6 +188,7 @@ Item{
         }
     ]
 
+    //Animate panel change
     transitions: [
         Transition {
             to: '*'

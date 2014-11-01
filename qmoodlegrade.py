@@ -22,7 +22,7 @@ def main():
 
 
 def startview():
-    qt.initalize_view()
+    qt.initialize_view()
 
 def start_dispatcher():
     qt.maindispatch = QTDispatcher(qt.mainview)

@@ -17,7 +17,12 @@ app = None
 mainview = None
 mainctx = None
 
+
 class AppData(QObject):
+    """
+    Holds application data for the main view.
+    Deprecated in favor of the new way of communicating
+    """
     _test_students = [QMLStudent.QMLStudent(name="Phillip", main_class="Lab1")]
     _students = QMLStudent.StudentQList(_test_students)
     _tests = []
@@ -60,22 +65,23 @@ class AppData(QObject):
     outputs = QProperty(list, getOutputs, notify=testsChanged)
     sourceText = QProperty(unicode, getSourceText, setSourceText, notify=sourceTextChanged)
 
+
 AppData = AppData()
 
 
+def initialize_view():
+    app = QApplication(argv)  # Make a new QApplication
+    ret = QDeclarativeView()  # Set up the declarative view
 
-def initalize_view():
-    if not mainview is None:
-        return mainview
-    app = QApplication(argv)
-    ret = QDeclarativeView()
-    url = QUrl.fromLocalFile("./qt/MoodleGrade.qml")
-    ret.setSource(url)
-    return app, ret
+    #TODO: Need to be able to find this file regardless of the current directory
+    url = QUrl.fromLocalFile("./qt/MoodleGrade.qml")  # Make the url for the file
+    ret.setSource(url)  # Load the QML file
+    return app, ret  # Return the QApplication and the QDeclarativeView
 
 
 if __name__ == "__main__":
-    app, mainview = initalize_view()
+    #This section is meant as a quick test of the declarative view. To actually use it run qmoodletool in main directory
+    app, mainview = initialize_view()
     mainview.updateStudentsList(AppData.getStudents())
     mainview.show()
     AppData.setSourceText("Update Test")

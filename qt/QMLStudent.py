@@ -7,43 +7,56 @@ import PySide.QtCore as QtCore
 from PySide.QtCore import Property as QProperty, Signal, Slot, QObject, QAbstractListModel
 
 
-def _sig_decorator(sig):
-    def dec(func):
-        def signal_function(*args, **kwargs):
-            func(*args, **kwargs)
-            sig.emit()
-        return signal_function
-    return dec
-
-def proc_wait_sig(proc, sig, student):
-    print 'Entering proc sig...'
+def proc_wait_sig(proc, sig, owner):
+    """
+    Waits for a subprocess to finish and then fires the given signal. The signal should be able
+    to accept the given owner
+    :param proc: The subprocess to wait for
+    :param sig: The signal to fire
+    :param owner: The object to send as the signals owner
+    """
     proc.wait()
-    sig.emit(student)
-    print "Signal emitted"
+    sig.emit(owner)
+
 
 class SourceOutput(QObject):
-    _name = ""
-    _output = ""
+    """Adapter to put the source code in to the outputs list"""
+    _name = ""  # Output's name
+    _output = ""  # The output
 
-    srcOutput = Signal()
+    srcOutput = Signal()  # Needed to be usable in QML
+
     def __init__(self, **kwargs):
+        #Initalize the QObject, there will be children crying, hair pulling, and gnashing of teeth if you forget
         super(SourceOutput, self).__init__(**kwargs)
 
     def getName(self):
+        """
+        Returns the name of the output
+        :rtype: str
+        """
         return self._name
+
     def getOutput(self):
+        """
+        Returns the output
+        :rtype: str
+        """
         return self._output
 
+    #Make the QProperties
     name = QProperty(str, getName, notify=srcOutput)
     output = QProperty(str, getOutput, notify=srcOutput)
 
 
-
 class QMLStudent(student.Student, QObject):
+    """
+    A wrapper class to make the base student available to QML.
+    """
+    lastid = 0  # Class variable to handle issuing ids
+    allottedids = set()  # Class var to store already assigned ids
 
-    lastid = 0
-    allotedids = set()
-
+    #Signals to handle property changes
     nameChanged = Signal()
     status_nameChanged = Signal(QObject)
     scoreChanged = Signal()
@@ -52,31 +65,41 @@ class QMLStudent(student.Student, QObject):
     studentIDChanged = Signal()
 
     def __init__(self, *args, **kwargs):
+        #Initialize base classes
         super(QMLStudent, self).__init__(*args, **kwargs)
-        self._id = self.getid()
+        self._id = self.getid()  # Get an id for this class
 
     def dobuild(self):
-        super(QMLStudent, self).dobuild()
+        super(QMLStudent, self).dobuild()  # Call super method
+        #Spin up a new thread to wait on the build
         threading.Thread(target=proc_wait_sig, args=(self.proc, self.status_nameChanged, self)).start()
 
     def dotests(self):
-        super(QMLStudent, self).dotests()
+        super(QMLStudent, self).dotests()  # Call super method
+        #Fire appropriate signals
         self.scoreChanged.emit()
 
     def dotest(self, cls):
-        super(QMLStudent, self).dotest(cls)
+        super(QMLStudent, self).dotest(cls)  # Call super methods
+        #Fire appropriate signals
         self.scoreChanged.emit()
         self.possibleChanged.emit()
 
 
     @Slot()
     def reload_tests(self):
-        self.tests = [qt_wrappers.TestWrapper(t(self.name, self.java_class)) for t in student.Student.tests]
-        self.state = student.StudentState.testing
+        """
+        Reload our tests based on the new tests in the class variable.
+        """
+        #Reinitalize the tests
+        self.tests = [t(self.name, self.java_class) for t in student.Student.tests]
+        self.state = student.StudentState.not_tested  #Reset our state
+        #Fire all appropriate signals
         self.scoreChanged.emit()
         self.possibleChanged.emit()
         self.flagChanged.emit()
 
+    #Getters and setters for the QProperties
     def getName(self):
         return self.name
 
@@ -85,7 +108,13 @@ class QMLStudent(student.Student, QObject):
         self.nameChanged.emit()
 
     def getStatus_name(self):
+        """
+        Returns a user friendly state name based on the current state
+        :return: State name
+        :rtype: str
+        """
         states = student.StudentState
+        #Mapping from state to string
         m = {states.ready: "Testing Finished",
              states.testing: "Testing...",
              states.build_error: "Build Error",
@@ -95,11 +124,18 @@ class QMLStudent(student.Student, QObject):
         return m[self.state]
 
     def getFlag(self):
+        """
+        Handles letting the user interface what general state we are in.
+        There are currently three states base state(""), testing is finished("ready"), there was an error("error")
+        :return: String representing our state
+        :rtype: str
+        """
         s = self.state
         if s == student.StudentState.build_error:
             return "error"
         if s == student.StudentState.ready:
             return "ready"
+        return ""
 
     def getScore(self):
         if not self.state == student.StudentState.ready:
@@ -115,6 +151,12 @@ class QMLStudent(student.Student, QObject):
 
     @property
     def sourceobject(self):
+        """
+        A output compatible object for the source code to be put in the outputs list.
+
+        :return: Object holding the students name and source code
+        :rtype: SourceOutput
+        """
         ret = SourceOutput()
         ret._name = self.name
         ret._output = self.source
@@ -128,13 +170,20 @@ class QMLStudent(student.Student, QObject):
 
     @classmethod
     def getid(cls):
-        cur = cls.lastid + 1
-        while cur in cls.allotedids:
-            cur += 1
-        cls.allotedids.add(cur)
-        cls.lastid = cur
+        """
+        Generate a new unique student id for the life of the program
+
+        :return: The generated id
+        :rtype: int
+        """
+        cur = cls.lastid + 1 # Add one to the last id
+        while cur in cls.allottedids:  # See if the id has already been assigned
+            cur += 1  # Add one until we find one that hasn't been
+        cls.allottedids.add(cur)  # Add it to the allotted ids
+        cls.lastid = cur  # Change lastid
         return cur
 
+    # Setup the QProperties
     studentName = QProperty(str, getName, setName, notify=nameChanged)
     status_name = QProperty(str, getStatus_name, notify=status_nameChanged)
     totalScore = QProperty(int, getScore, notify=scoreChanged)
@@ -142,28 +191,45 @@ class QMLStudent(student.Student, QObject):
     flag = QProperty(str, getFlag, notify=flagChanged)
     studentID = QProperty(int, getStudentID, notify=studentIDChanged)
 
+
 class StudentQList(QAbstractListModel):
-    COL = ("studentObj", "studentName", "status_name", "totalScore", "totalPossible", "totalPossible", "flag", "studentID")
+    """
+    A data model for student objects.
+    """
+    #The available fields
+    COL = (
+        "studentObj", "studentName", "status_name", "totalScore", "totalPossible", "totalPossible", "flag", "studentID")
+
     def __init__(self, l, **kwargs):
         super(StudentQList, self).__init__(**kwargs)
-        self.COL = dict(enumerate(StudentQList.COL))
-        self.setRoleNames(self.COL)
-        self._list = list(l)
+        self.COL = dict(enumerate(StudentQList.COL))  # Number the fields and put them in a dict
+        self.setRoleNames(self.COL)  # Set the fields as roles in the data model
+        self._list = list(l)  # Set the given python list as our data source
 
     def rowCount(self, *args, **kwargs):
+        """
+        Get the number of rows we have
+        :param args: Additional arguments
+        :param kwargs: Additional named arguments
+        :return: The number of rows in the model
+        :rtype: int
+        """
         return len(self._list)
 
     def data(self, index, role, *args, **kwargs):
-        for rid, name in self.COL.iteritems():
-            if role == rid:
-                if name == "studentObj":
-                    return self._list[index.row()]
-                return getattr(self._list[index.row()], name)
-        return None
-
-
-def get_dict_attr(obj,attr):
-    for obj in [obj]+obj.__class__.mro():
-        if attr in obj.__dict__:
-            return obj.__dict__[attr]
-    raise AttributeError
+        """
+        Get a piece of data from the model
+        :param index: An index object
+        :param role: The desired role to retrieve
+        :param args: Additional arguments
+        :param kwargs: Additional named arguments
+        :return: The requested data or None if not found
+        """
+        try:
+            name = self.COL[role]  # Find the desired role
+            if name == "studentObj":  # We're looking for the actual student object
+                return self._list[index.row()]  # So return that
+            return getattr(self._list[index.row()], name)  # Else look up the attribute and return that
+        except:
+            pass
+        return None  # Return none if there we're any errors or if anything else occurred
