@@ -9,9 +9,16 @@ from qt_wrappers import TestWrapper, TestClassWrapper, ObjectListModel
 from testing import findtests, tests
 from grade import prepare_directory
 import os
+from contextlib import contextmanager
 from types import MethodType
 
-
+@contextmanager
+def DisconnectSignal(signal, slot):
+    signal.disconnect(slot)
+    try:
+        yield
+    finally:
+        signal.connect(slot)
 
 class QTDispatcher(QObject):
 
@@ -69,41 +76,40 @@ class QTDispatcher(QObject):
 
     @Slot()
     def parsetests(self):
-        self._root.parseTests.disconnect(self.parsetests)
-        path = self._root.property('testFolder')
-        findtests(str(path))
-        self.testwrappers = [TestClassWrapper(t) for t in tests.itervalues()]
-        self.testsUpdated.emit(ObjectListModel(self.testwrappers))
-        self._root.parseTests.connect(self.parsetests)
+        with DisconnectSignal(self._root.parseTests, self.parsetests):
+            path = self._root.property('testFolder')
+            findtests(str(path))
+            self.testwrappers = [TestClassWrapper(t) for t in tests.itervalues()]
+            self.testsUpdated.emit(ObjectListModel(self.testwrappers))
+
 
     @Slot()
     def starttests(self):
-        self._root.startTesting.disconnect(self.starttests)
+        with DisconnectSignal(self._root.startTesting, self.starttests):
 
-        if self.oldgrade != self._root.property('gradeFolder'):
-            self.oldgrade = self._root.property('gradeFolder')
-            os.chdir(self.oldgrade)
-            self.populate_students()
+            if self.oldgrade != self._root.property('gradeFolder'):
+                self.oldgrade = self._root.property('gradeFolder')
+                os.chdir(self.oldgrade)
+                self.populate_students()
 
-        for student in __init__.studentslist:
-            student.status_nameChanged.connect(self.starttest)
-            student.dobuild()
+            for student in __init__.studentslist:
+                student.status_nameChanged.connect(self.starttest)
+                student.dobuild()
 
-
-        self._root.startTesting.connect(self.starttests)
 
     @Slot(QObject)
     def starttest(self, student):
-        if student.state == StudentState.build_error or student.state == StudentState.not_tested:
+        if student.state == StudentState.build_error:
             student.status_nameChanged.disconnect(self.starttest)
         if student.state == StudentState.not_tested:
             student.dotests()
 
     @Slot()
     def setuptests(self):
-        QMLStudent.tests = [t.test for t in self.testwrappers if t._selected]
-        for s in __init__.studentslist:
-            s.reload_tests()
+        with DisconnectSignal(self._root.setupTests, self.setuptests):
+            QMLStudent.tests = [t.test for t in self.testwrappers if t._selected]
+            for s in __init__.studentslist:
+                s.reload_tests()
 
     @Slot()
     def populate_students(self):
