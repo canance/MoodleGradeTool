@@ -1,17 +1,43 @@
 __author__ = 'phillip'
 
-import sys, os
+import sys,os
 
 import re
 import subprocess
 import abc
 import filemanager
 import datetime
+import shutil
+
 
 
 testers = set()  # The available test types
 
 tests = {}  # The available tests
+
+
+def find_package(origfile, destfile, classname, path):
+    classDeclaration = "public class " + classname
+    package = None
+    #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
+    with open(origfile) as fHandle:
+        for line in fHandle:
+            if classDeclaration in line:
+                break
+            if "package " in line:
+                #Strip trailing ';' with strip method -Phillip Wall
+                package = line.replace("package ", "").strip(';\r\n')
+                #1. create a new directory for the package
+                #2. Move the class file to the package directory
+                destdir = "{}/{}".format(path, package)
+
+                if not os.path.exists(destdir):
+                    os.mkdir(destdir)
+
+                destfile = destdir + "/%s.java" % classname
+                classname = package + "." + classname
+                return destfile, classname, package
+    return destfile, classname, package
 
 class TesterMeta(abc.ABCMeta):
 
@@ -170,8 +196,8 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_regex(cls, line, d):
-        if line and line[:7] == "Regex: ":
-            line = line[6:]
+        if line and line[:7].upper() == "REGEX: ":
+            line = line[6:].strip()
             d.setdefault('regexes', []).append(re.compile(line))
             return True
 
@@ -197,6 +223,7 @@ class RegexTester(Tester):
             src, dst = path
             dst = "%s/%s" % (self.cwd, dst)
             keys.append(filemanager.copy(src, dst))
+            print "DEST = " + dst
 
         #if main class was specified copy it and compile.  Replace self.clsName with main class.
         if self.main is not None:
@@ -207,12 +234,25 @@ class RegexTester(Tester):
             #get classname
             clsname = os.path.basename(dst)
             clsname = clsname[:-5]
+
+            #determine if we need to be in a package
+            origfile = self.cwd + "/" + "/".join(self.clsName.split(".")) + ".java"
+            final_dst, clsname, package = find_package(origfile, dst, clsname, self.cwd)
+            if package:
+                tmp = "{}.tmp".format(dst)
+                with file(dst) as input:
+                    with file(tmp, 'w') as output:
+                        output.write("package {};".format(package))
+                        for line in input:
+                            output.write(line)
+                shutil.copy(tmp, final_dst)
+
+
             #compile
             with open(self.cwd + "/build.log", 'a') as log:  # Open the log file
                 #Log entry header
                 log.write('\n\n' + str(datetime.datetime.now()) + '\n')
                 log.write("Starting build of %s.java\n\n" % clsname)
-
                 #Start the build
                 proc = subprocess.Popen(('javac', "/".join(clsname.split(".")) + ".java"),
                                              cwd=self.cwd, stdout=log, stderr=subprocess.STDOUT)
@@ -226,15 +266,15 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
-
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                    stderr=subprocess.STDOUT, cwd=self.cwd)
             except subprocess.CalledProcessError, e:
+                self._output = e.output + "\n" + str(e)
                 print "Program did not behave according to test information.  Please try running manually."
                 print >> sys.stderr, e
-                return
+
         #Run all the detected regexes against the output
         for reg in self.regexes:
             m = reg.search(self._output)
@@ -244,7 +284,6 @@ class RegexTester(Tester):
         #clean up filemanager
         for key in keys:
             filemanager.clean(key)
-
 
     @staticmethod
     def handlesconfig(fd):

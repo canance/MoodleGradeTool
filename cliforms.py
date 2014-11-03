@@ -138,7 +138,7 @@ class StudentRecord(npyscreen.SplitForm):
         #Displayes the total score of the student
         total = "Total score: {s.score}/{s.possible}".format(s=self.student)
 
-        self.add(npyscreen.FixedText, name="", value=total, max_width=len(total))
+        self.add(npyscreen.FixedText, name="", value=total, max_width=len(total) + 1)
 
         self.nextrely += 5  # Skip 5 rows
 
