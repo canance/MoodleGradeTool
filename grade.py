@@ -51,7 +51,7 @@ def main():
     for k, v in paths.iteritems():
         paths[k] = os.path.abspath(v)
   
-
+    path = paths['folder']
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         if os.path.exists(path[:-4]):
@@ -92,7 +92,7 @@ def main():
 
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, students, q))  # Set up the building thread
+    t = Thread(target=do_builds, args=(students, q))  # Set up the building thread
     t.start()
 
     #root element for report
