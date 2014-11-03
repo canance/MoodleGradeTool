@@ -131,7 +131,7 @@ def main():
             testelement = etree.SubElement(stuelement, 'test')
             testelement.set("score", str(test.score))
             testelement.set("possible", str(test.possible))
-            testelement.set("name", test.name
+            testelement.set("name", test.name)
             print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
         print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
