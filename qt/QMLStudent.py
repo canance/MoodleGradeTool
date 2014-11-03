@@ -27,7 +27,7 @@ class SourceOutput(QObject):
     srcOutput = Signal()  # Needed to be usable in QML
 
     def __init__(self, **kwargs):
-        #Initalize the QObject, there will be children crying, hair pulling, and gnashing of teeth if you forget
+        #Initalize the QObject or there will be children crying, hair pulling, and gnashing of teeth if you forget
         super(SourceOutput, self).__init__(**kwargs)
 
     def getName(self):
