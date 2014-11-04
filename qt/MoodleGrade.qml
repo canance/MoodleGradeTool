@@ -222,6 +222,8 @@ Rectangle {
                     //Text box with the tests name
                     Text {
                         text: Obj.name
+                        width: lst_tests.width - 35
+                        clip: true
                     }
 
                     //Text box with the tests score

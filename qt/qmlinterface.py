@@ -76,6 +76,7 @@ def initialize_view():
     #TODO: Need to be able to find this file regardless of the current directory
     url = QUrl.fromLocalFile("./qt/MoodleGrade.qml")  # Make the url for the file
     ret.setSource(url)  # Load the QML file
+    ret.setResizeMode(QDeclarativeView.SizeRootObjectToView)
     return app, ret  # Return the QApplication and the QDeclarativeView
 
 
