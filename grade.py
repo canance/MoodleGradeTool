@@ -51,7 +51,7 @@ def main():
     for k, v in paths.iteritems():
         paths[k] = os.path.abspath(v)
   
-
+    path = paths['folder']
     # Fixed comparison to leverage negative indexes -Phillip Wall
     if '.zip' == path[-4:]:
         if os.path.exists(path[:-4]):
@@ -79,23 +79,20 @@ def main():
                     else:
                         f.seek(0)  # Need to reset the file position for next check
 
-    os.chdir(paths['folder'])
+    os.chdir(paths['folder'])  # Change to the grading directory
 
-    tkeys = select_test()
-
-    if tkeys:
-        tlist = [tests[key] for key in tkeys]
+    tkeys = select_test()  # Run the TestSelector form
+    if tkeys:  # If we selected tests
+        tlist = [tests[key] for key in tkeys]  # Get the test classes
     else:
-        tlist = tests['Manual']
+        tlist = [tests['Manual']]  # Else we need a list of just the Manual test
 
-    student.Student.tests = tlist
-
+    student.Student.tests = tlist  # Set the default tests for the student class
     students = prepare_directory(path)  # Prepare the grading directory
 
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
 
-    t = Thread(target=do_builds, args=(path, students, q))  # Set up the building thread
-
+    t = Thread(target=do_builds, args=(students, q))  # Set up the building thread
     t.start()
 
     #root element for report
@@ -103,8 +100,7 @@ def main():
 
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
-
-        #Get the information about the next program in the list
+        #Get the next student in the list
         currentstudent = q.get()
         assert isinstance(currentstudent, student.Student)
 
@@ -113,9 +109,9 @@ def main():
         #Print out the information
         print "#" * 35, '\n'
         print currentstudent.name
-        print "{path}/{student}/{cls}.java".format(path=path, student=currentstudent.name,
-                                                   cls=currentstudent.java_class)
+        print "{path}/{student.name}/{student.java_class}.java".format(path=path, student=currentstudent)
 
+        #Make sure we're in the right state before we continue
         if currentstudent.state == student.StudentState.building:
             print "Waiting for build to finish..."
             currentstudent.proc.wait()
@@ -127,35 +123,32 @@ def main():
         #Change the working path to the student's directory
         wrkpath = "{}/{}".format(path, currentstudent.name)
 
-        #os.chdir(wrkpath)
-
-        #NOTE The structure of this block will probably change significantly once pynscreen is done
-        possible = 0
-
         print "Running tests..."
-        currentstudent.dotests()
+        currentstudent.dotests()  # Run all the tests
+
+        #Print the results
         for test in currentstudent.tests:
             testelement = etree.SubElement(stuelement, 'test')
             testelement.set("score", str(test.score))
             testelement.set("possible", str(test.possible))
             testelement.set("name", test.name)
-            possible += test.possible
-            print "\nThe program got a score of {score}/{possible} on {test}".format(score=test.score,
-                                                                                     possible=test.possible,
-                                                                                     test=test.name)
+            print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
-        print "Program got a total score of {score}/{possible}".format(score=currentstudent.score,
-                                                                       possible=possible)
+        print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
+
         if quick:
             continue
 
+        #Show the results for the student, and get the form options
         save, manual = process_tests(currentstudent)
 
+        #If save was selected on the form we want to save the output of the test
         if save:
             for test in filter(lambda t: hasattr(t,'output'), currentstudent.tests):
                 with open("{path}/{test}_output.log".format(path=wrkpath, test=test.name), 'w') as log:
                     log.write(test.output())
 
+        #If manual was selected we want to manually interact with the program
         if manual:
             ans = 'y'
             while ans and ans.lower()[0] == 'y':  # Continue while the user keeps pressing yes
@@ -170,20 +163,26 @@ def main():
     with open('results.xml', 'w') as f:
         f.write(etree.tostring(root, pretty_print=True))
 
-
-
-#end main
-
 @cliforms.forms
-def fileconfig(stdscr, folder="", config="",*args):
+def fileconfig(stdscr, folder="", config="", *args):
+    """
+    Displays a file selection dialog.
+    :param folder: The grading folder to default to
+    :param config: The test configuration folder
+    :returns: A dictionary containing the folder and config dirs
+    :rtype: dict
+    """
     f = cliforms.FileDialog(folder, config)
     f.edit()
 
+    #Setup the dict
     ret = {'folder': f.directory.value, 'config': f.testconf.value}
 
+    #Setup the default for the folder
     if not ret['folder']:
         ret['folder'] = os.curdir
 
+    #Setup the default for the test configuration folder
     if not ret['config']:
         ret['config'] = ret['folder']
 
@@ -196,15 +195,15 @@ def select_test(*args):
     :rtype : List
     """
 
-    keys = tests.keys()
+    keys = tests.keys()  # Get the current tests
     f = cliforms.TestsSelector()
-    f.edit()
-    indexes = f.selector.value
+    f.edit()  # Call the test selector form
+    indexes = f.selector.value  # Get the required values from the form
 
     if not indexes:
-        return None
+        return None  # If nothing has been selected we want to return None
 
-    return [keys[i] for i in indexes]
+    return [keys[i] for i in indexes]  # Otherwise get the keys and return them
 
 @cliforms.forms
 def process_tests(stdscr, student):
@@ -213,18 +212,19 @@ def process_tests(stdscr, student):
     :returns: A tuple of (Save output, Run Manual)
     :rtype: tuple
     """
-    f = cliforms.StudentRecord(student=student)
+    f = cliforms.StudentRecord(student=student)  # Create the form for this student
     f.edit()
 
+    #Get the needed values from the form and return them
     return f.checksave.value, f.checkmanual.value
 
 
-def print_numbered(l):
-    for i in xrange(len(l)):
-        print str(i+1) + ". " + str(l[i])
-
-
-def do_builds(path, studentslist, que):
+def do_builds(studentslist, que):
+    """
+    Performs the building of the source files for each student.
+    :param studentslist: The list of students to build
+    :param que: The que to put the students who are building on
+    """
     for curstudent in studentslist:
         curstudent.dobuild()
         que.put(curstudent)
