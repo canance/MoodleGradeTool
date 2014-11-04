@@ -273,7 +273,11 @@ Rectangle {
                 width: parent.width - x - 20
                 height: 160
                 highlightRangeMode: ListView.NoHighlightRange
+                highlightFollowsCurrentItem: false
+                focus: true
+
                 delegate: Item {
+                    id: outItm
                     height: 15
                     width: lstOuputs.width
 
@@ -284,16 +288,45 @@ Rectangle {
 
                     property bool currentItm: ListView.isCurrentItem
 
-                    Binding {
-                        target: mainPanel
-                        property: "sourceText"
-                        value: Obj.output
-                        when: currentItm
+                    onCurrentItmChanged: {
+                        mainPanel.sourceText = Obj.output
+                    }
+
+                    MouseArea {
+                        id: msItem
+                        anchors.fill: parent
+                        onClicked: {
+                            outhighlight.visible = true
+                            outhighlight.height = parent.height
+                            outhighlight.width = parent.width
+                            outItm.ListView.view.currentIndex = index
+                            outItm.forceActiveFocus()
+                            mainPanel.sourceText = Obj.output
+                            outhighlight.y = parent.y
+                            outhighlight.x = parent.x
+                        }
                     }
 
                 }
 
                 model: outputs
+
+                Rectangle {
+                    id: outhighlight
+                    visible: false
+                    opacity: .3
+                    color: "lightsteelblue"
+                    radius: 5
+                    border.color: "lightblue"
+                    border.width: 1
+                    Behavior on y {
+                                 SpringAnimation {
+                                     spring: 3
+                                     damping: 0.2
+                                 }
+                             }
+
+                }
 
                 Text {
                     id: text3

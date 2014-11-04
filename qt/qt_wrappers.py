@@ -63,7 +63,7 @@ class TestWrapper(QObject):
         return hasattr(self._test, 'output')
 
     def getOutput(self):
-        return "" if not hasattr(self._test, 'output') else self._test.output
+        return "" if not hasattr(self._test, 'output') else self._test.output()
 
     def getScore(self):
         return self._test.score

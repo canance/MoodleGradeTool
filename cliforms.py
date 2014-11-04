@@ -184,7 +184,7 @@ def setup(stdscr, func,*args,**kwargs):
 
 def break_curses(func, *args, **kwargs):
     #Tear down curses
-    stdscr.keypad(0)
+    #stdscr.keypad(0)
     curses.echo()
     curses.nocbreak()
     curses.endwin()

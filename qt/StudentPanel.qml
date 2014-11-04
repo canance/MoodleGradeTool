@@ -153,19 +153,28 @@ Item{
         border.width: 3
         border.color: "#6974a8"
 
-        //Text box for output
-        TextEdit {
-            id: text_edit1
-            readOnly: true
-            text: mainPanel.sourceText
-            textFormat: TextEdit.RichText
-            anchors.rightMargin: 5
-            anchors.leftMargin: 4
-            anchors.bottomMargin: 5
-            anchors.topMargin: 6
+        Flickable{
+            id: flick1
+            contentWidth: text_edit1.paintedWidth
+            contentHeight: text_edit1.paintedHeight
             anchors.fill: parent
-            font.pixelSize: 12
+
+            //Text box for output
+            TextEdit {
+                id: text_edit1
+                readOnly: true
+                text: mainPanel.sourceText
+                textFormat: TextEdit.AutoText
+                anchors.rightMargin: 5
+                anchors.leftMargin: 4
+                anchors.bottomMargin: 5
+                anchors.topMargin: 6
+                anchors.fill: parent
+                font.pixelSize: 12
+            }
         }
+
+
     }
 
     //States
