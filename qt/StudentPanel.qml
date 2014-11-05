@@ -158,17 +158,19 @@ Item{
             contentWidth: text_edit1.paintedWidth
             contentHeight: text_edit1.paintedHeight
             anchors.fill: parent
+            anchors.rightMargin: 5
+            anchors.leftMargin: 4
+            anchors.bottomMargin: 5
+            anchors.topMargin: 6
+            clip: true
 
             //Text box for output
             TextEdit {
                 id: text_edit1
                 readOnly: true
                 text: mainPanel.sourceText
-                textFormat: TextEdit.RichText
-                anchors.rightMargin: 5
-                anchors.leftMargin: 4
-                anchors.bottomMargin: 5
-                anchors.topMargin: 6
+                textFormat: TextEdit.AutoText
+
                 anchors.fill: parent
                 font.pixelSize: 12
             }
