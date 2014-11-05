@@ -164,7 +164,7 @@ Item{
                 id: text_edit1
                 readOnly: true
                 text: mainPanel.sourceText
-                textFormat: TextEdit.AutoText
+                textFormat: TextEdit.RichText
                 anchors.rightMargin: 5
                 anchors.leftMargin: 4
                 anchors.bottomMargin: 5

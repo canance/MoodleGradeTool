@@ -1,10 +1,11 @@
+
 __author__ = 'phillip'
 
-import qt_wrappers
 import student
 import threading
-import PySide.QtCore as QtCore
 from PySide.QtCore import Property as QProperty, Signal, Slot, QObject, QAbstractListModel
+from qt.sourceformatting import SourceOutput
+
 
 
 def proc_wait_sig(proc, sig, owner):
@@ -17,36 +18,6 @@ def proc_wait_sig(proc, sig, owner):
     """
     proc.wait()
     sig.emit(owner)
-
-
-class SourceOutput(QObject):
-    """Adapter to put the source code in to the outputs list"""
-    _name = ""  # Output's name
-    _output = ""  # The output
-
-    srcOutput = Signal()  # Needed to be usable in QML
-
-    def __init__(self, **kwargs):
-        #Initalize the QObject or there will be children crying, hair pulling, and gnashing of teeth if you forget
-        super(SourceOutput, self).__init__(**kwargs)
-
-    def getName(self):
-        """
-        Returns the name of the output
-        :rtype: str
-        """
-        return self._name
-
-    def getOutput(self):
-        """
-        Returns the output
-        :rtype: str
-        """
-        return self._output
-
-    #Make the QProperties
-    name = QProperty(str, getName, notify=srcOutput)
-    output = QProperty(str, getOutput, notify=srcOutput)
 
 
 class QMLStudent(student.Student, QObject):
@@ -155,7 +126,7 @@ class QMLStudent(student.Student, QObject):
         A output compatible object for the source code to be put in the outputs list.
 
         :return: Object holding the students name and source code
-        :rtype: SourceOutput
+        :rtype: qt.sourceformatting.SourceOutput
         """
         ret = SourceOutput()
         ret._name = self.name
