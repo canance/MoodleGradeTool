@@ -16,6 +16,8 @@ import zipfile
 import re
 import student
 import argparse
+from lxml import etree
+
 
 from testing import tests, testers
 
@@ -29,14 +31,18 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 def main():
 
     parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
-    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing the Moodle submissions.')
+    parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing '
+                                                                             'the Moodle submissions.')
     parser.add_argument('-c', '--config', metavar='ConfigPath', type=str, help='Path to the configuration directory.')
+    parser.add_argument('-q', '--quick', action='store_true', help='Quick run.  After selecting tests the program will run the tests, save '
+                                              'the results, and terminate.')
     args = parser.parse_args()
     
     #set path and config variables
     path = os.path.abspath(args.path) if args.path else None
     config = os.path.abspath(args.config) if args.config else None
-    
+    quick = args.quick
+
     paths = {'folder': path, 'config': config}
     
     if path is None or config is None:
@@ -85,14 +91,20 @@ def main():
     students = prepare_directory(path)  # Prepare the grading directory
 
     q = Queue(maxsize=MAX_BUILDS)  # Set up the build queue
+
     t = Thread(target=do_builds, args=(students, q))  # Set up the building thread
-    t.start()  #Start doing builds
+    t.start()
+
+    #root element for report
+    root = etree.Element("Results")
 
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
         #Get the next student in the list
         currentstudent = q.get()
         assert isinstance(currentstudent, student.Student)
+
+        stuelement = etree.SubElement(root, 'student', name=currentstudent.name)
 
         #Print out the information
         print "#" * 35, '\n'
@@ -116,9 +128,16 @@ def main():
 
         #Print the results
         for test in currentstudent.tests:
+            testelement = etree.SubElement(stuelement, 'test')
+            testelement.set("score", str(test.score))
+            testelement.set("possible", str(test.possible))
+            testelement.set("name", test.name)
             print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
         print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
+
+        if quick:
+            continue
 
         #Show the results for the student, and get the form options
         save, manual = process_tests(currentstudent)
@@ -141,6 +160,8 @@ def main():
     os.chdir(path)
     t.join()
 
+    with open('results.xml', 'w') as f:
+        f.write(etree.tostring(root, pretty_print=True))
 
 @cliforms.forms
 def fileconfig(stdscr, folder="", config="", *args):
@@ -253,42 +274,13 @@ def prepare_directory(path):
         if not m:
             continue  #If there is not a match this filename does not match the expected format, skip it.
 
-
         studentname = m.group(1)  #Get the student name from the match
-        className = m.group(2)  #Get the className from the match
-        destFile = "{}/{}/{}.java".format(path, studentname, className)
-        origFile = "{}/{}".format(path, f)
+        filename = m.group(2)  #Get the file name from the match
 
-        studentdir = "{}/{}".format(path, studentname)
-        if not os.path.exists(studentdir):
-            os.mkdir(studentdir)
-
-        classDeclaration = "public class " + className
-
-        #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
-        with open(origFile) as fHandle:
-            for line in fHandle:
-                if classDeclaration in line:
-                    break
-                if "package " in line:
-                    #Strip trailing ';' with strip method -Phillip Wall
-                    package = line.replace("package ", "").strip(';\r\n')
-                    #1. create a new directory for the package
-                    #2. Move the class file to the package directory
-                    destdir = "{}/{}/{}".format(path, studentname, package)
-
-                    if not os.path.exists(destdir):
-                        os.mkdir(destdir)
-
-                    destFile = destdir + "/%s.java" % className
-
-                    className = package + "." + className
-
-        shutil.copy(origFile, destFile) #Copy the java file to the destination
-
-        #Gets the class list for the student, if the student hasn't been added creates an empty list
-        #Doing it this way allows for multifile java projects
-        tmp.setdefault(studentname, []).append(className)
+        if f[-5:] == '.java': #single file
+            prepare_single_file(studentname, filename, path, f, tmp)
+        elif f[-4:] == '.zip': #zip file
+            prepare_zip_file(studentname, filename, path, f, tmp)
 
     res = []
     for name, cl in tmp.iteritems():
@@ -296,6 +288,77 @@ def prepare_directory(path):
         res.append(student.Student(name, main, cl))
 
     return res
+
+def prepare_zip_file(studentname, filename, path, f, tmp):
+    studentdir = "{}/{}".format(path, studentname)
+    if not os.path.exists(studentdir):
+        os.mkdir(studentdir)
+
+    if f[-4:] == '.zip':
+        zip = "{}/{}".format(path, f)
+        zipdir = "{}/{}".format(path, f[:-4])
+        if not os.path.exists(zipdir):
+            os.mkdir(zipdir)
+
+        with zipfile.ZipFile(zip) as z:
+                z.extractall(path=zipdir)
+    else:
+        zipdir = f
+
+    files = os.listdir(zipdir)
+
+    for f in files:
+        if f[-5:] == '.java':
+            origfile = "{}/{}".format(zipdir, f)
+            destfile = "{}/{}".format(studentdir, f)
+            spath = "{}/{}".format(path, studentname)
+            classname = f[:-5]
+            destfile, classname, package = find_package(origfile, destfile, classname, spath)
+            shutil.copy(origfile, destfile)
+            tmp.setdefault(studentname, []).append(classname)
+        elif os.path.isdir(zipdir + "/" + f):
+            prepare_zip_file(studentname, filename, path, zipdir + "/" + f, tmp)
+    shutil.rmtree(zipdir)
+
+
+def find_package(origfile, destfile, classname, path):
+    classDeclaration = "public class " + classname
+    package = None
+    #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
+    with open(origfile) as fHandle:
+        for line in fHandle:
+            if classDeclaration in line:
+                break
+            if "package " in line:
+                #Strip trailing ';' with strip method -Phillip Wall
+                package = line.replace("package ", "").strip(';\r\n')
+                #1. create a new directory for the package
+                #2. Move the class file to the package directory
+                destdir = "{}/{}".format(path, package)
+
+                if not os.path.exists(destdir):
+                    os.mkdir(destdir)
+
+                destfile = destdir + "/%s.java" % classname
+                classname = package + "." + classname
+                return destfile, classname, package
+    return destfile, classname, package
+
+def prepare_single_file(studentname, filename, path, f, tmp):
+    classname = filename
+    destfile = "{}/{}/{}.java".format(path, studentname, classname)
+    origfile = "{}/{}".format(path, f)
+    spath = "{}/{}".format(path, studentname)
+    studentdir = "{}/{}".format(path, studentname)
+    if not os.path.exists(studentdir):
+        os.mkdir(studentdir)
+
+    destfile, classname, package = find_package(origfile, destfile, classname, spath)
+    shutil.copy(origfile, destfile) #Copy the java file to the destination
+
+    #Gets the class list for the student, if the student hasn't been added creates an empty list
+    #Doing it this way allows for multifile java projects
+    tmp.setdefault(studentname, []).append(classname)
 
 
 if __name__ == "__main__":
