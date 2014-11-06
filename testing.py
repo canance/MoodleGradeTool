@@ -293,10 +293,13 @@ class RegexTester(Tester):
                 print >> sys.stderr, e
 
         #Run all the detected regexes against the output
+        self.report = []
         for reg in self.regexes:
             m = reg.search(self._output)
             if m:
                 self._score += 1  # And count how many matches we got.
+
+            self.report.append((reg.pattern, bool(m)))
 
         #clean up filemanager
         for key in keys:

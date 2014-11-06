@@ -17,6 +17,7 @@ import re
 import student
 import argparse
 from lxml import etree
+from reporting import XMLReport
 
 
 from testing import tests, findtests
@@ -122,10 +123,10 @@ def main():
 
         #Print the results
         for test in currentstudent.tests:
-            testelement = etree.SubElement(stuelement, 'test')
-            testelement.set("score", str(test.score))
-            testelement.set("possible", str(test.possible))
-            testelement.set("name", test.name)
+            # testelement = etree.SubElement(stuelement, 'test')
+            # testelement.set("score", str(test.score))
+            # testelement.set("possible", str(test.possible))
+            # testelement.set("name", test.name)
             print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
         print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
@@ -154,8 +155,10 @@ def main():
     os.chdir(path)
     t.join()
 
-    with open('results.xml', 'w') as f:
-        f.write(etree.tostring(root, pretty_print=True))
+    XMLReport(students).save('results.xml')
+
+    # with open('results.xml', 'w') as f:
+    #     f.write(etree.tostring(root, pretty_print=True))
 
 @cliforms.forms
 def fileconfig(stdscr, folder="", config="", *args):
