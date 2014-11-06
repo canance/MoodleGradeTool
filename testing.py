@@ -7,14 +7,32 @@ import subprocess
 import abc
 import filemanager
 import datetime
+import pexpect, fdpexpect
+import StringIO
+from lxml import etree
+from collections import defaultdict
+from functools import partial
 import shutil
 
-
-
+FileMapping = filemanager.FileMapping
 testers = set()  # The available test types
 
 tests = {}  # The available tests
 
+def findtests(path):
+    tests.clear()
+    olddir = os.curdir
+    os.chdir(path)
+    for filename in os.listdir(path):
+        if filename.endswith(".test") or filename.endswith(".testx"):  # Find the files that end with .test in the grading dir
+            with open(path + '/' + filename, 'r') as f:  # Open the file
+                for tester in testers:
+                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
+                        tester.parse_config(path+ '/' + filename)  # If they do, give them the file path to parse
+                        break
+                    else:
+                        f.seek(0)  # Need to reset the file position for next check
+    os.chdir(olddir)
 
 def find_package(origfile, destfile, classname, path):
     classDeclaration = "public class " + classname
@@ -65,6 +83,7 @@ class Tester(object):
         self.student = student
         self.clsName = clsName
         self.cwd = os.path.abspath(self.cwd.format(student=student, cls=clsName))
+        self._score = 0
 
     @abc.abstractmethod
     def start(self):
@@ -266,6 +285,7 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
+
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
@@ -276,10 +296,13 @@ class RegexTester(Tester):
                 print >> sys.stderr, e
 
         #Run all the detected regexes against the output
+        self.report = []
         for reg in self.regexes:
             m = reg.search(self._output)
             if m:
                 self._score += 1  # And count how many matches we got.
+
+            self.report.append((reg.pattern, bool(m)))
 
         #clean up filemanager
         for key in keys:
@@ -287,13 +310,145 @@ class RegexTester(Tester):
 
     @staticmethod
     def handlesconfig(fd):
-        return "RegexTester" in fd.readline()
+        return "#RegexTester" in fd.readline()
 
     @property
     def possible(self):
         return len(self.regexes)
 
+class AdvancedRegexTester(Tester):
+    _score = 0
+
+    @property
+    def possible(self):
+        return len(self.qxpath('//ar:assertion')) + len(self.qxpath('//ar:match'))
+
+    def start(self):
+        self.report = []
+        main = None  # Placeholder for the main test
+        others = []  # Holds other tests
+        for test in self.tree.xpath('./ar:Test', namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'}):  # Get all test nodes
+            if (not 'file' in test.attrib) and not main:  # See if this is the first test with out a filename
+                main = test  # Set it to be the main test
+            else:
+                others.append((test, test.get('file')))  # Append every other test to the others
+
+        if not main: raise ValueError("Could not find the main test")
+
+        java_cls = self.clsName if not hasattr(self, 'main') is None else self.main  # Get the main java class
+        self._out = StringIO.StringIO()  # Make a stringIO to hold the output
+        proc = pexpect.spawn('java', [java_cls], logfile=self._out, cwd=self.cwd)  # Spawn the java program
+
+        self.do_test(proc, main)  # Do the main test
+
+        for test, fname in others:  # Do the other tests
+            with open(self.cwd + '/' + fname, 'r') as f:  # Open the associated file
+                fexp = fdpexpect.fdspawn(f)  # Spawn an expect instance for the file
+                self.do_test(fexp, test)  # Do the test
+
+    def do_test(self, proc, testroot):
+        #assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
+        asserts = {}  # Dict for storing matches used in asserts
+        qxpath = partial(testroot.xpath, namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'})
+        for exp in qxpath('./ar:Expect'):  # For every Expect node in testroot
+            prmt = False
+            try:
+                if 'prompt' in exp.attrib:  # See if we're expecting a prompt
+                    proc.expect(exp.get('prompt'))  # Get and use the prompt
+                    prmt = True  # Set this to true so we send a new line later
+                else:
+                    proc.expect(pexpect.EOF)  # Else wait until end of file
+            except pexpect.TIMEOUT:
+                break
+            out = proc.before #+ proc.after  # Get everything before and up to the match
+            for ele in exp:  # For every element int the expect node
+                if ele.tag == "{http://moodlegradetool.com/advanced_regex}match":  # If its a match tag find the regex
+                    expr = self.regexes[ele.text]  # Get the regex
+                    m = expr.search(out)  # Try to do a match
+                    if m: self._score += 1  # If there is one raise the score
+                    if 'id' in ele.attrib:  # If this match has an id
+                        asserts[str(ele.get('id'))] = m  # Store it for later
+                    self.report.append(("MATCH: " + expr.pattern, bool(m)))
+                if ele.tag == "{http://moodlegradetool.com/advanced_regex}input":  # If its an input tag
+                    txt = ele.text.strip()
+                    #Try to find the input
+                    if txt in self.inputs:
+                        proc.send(self.inputs[txt]+' ')  # Send a normal input followed by a space
+                    elif txt in self.files:
+                        fname = self.files[txt].destination  # If its a file input
+                        proc.send(fname + ' ')  # Send the destination file name
+            if prmt:
+                proc.sendline('')  # If this was a prompt send a new line
+
+        for assr in qxpath('./ar:assertion'):  # For every assert tag in the test root
+            m = asserts.get(str(assr.get('match')), None)  # Get the corresponding match object
+            if not m:
+                self.report.append(("ASSERT: " + assr.get('match') + " - No Match", False))
+                continue  # If there was no match continue
+
+            passes = True
+            for grp in assr:  # Get all the match groups
+                id = grp.get('id')  # Get the group id
+                try:
+                    id = int(id)  # Attempt to cast it to an int
+                except ValueError:
+                    pass
+
+                txt = grp.text.strip()  # Strip the match text
+                passes = passes and (m.group(id).strip() == txt)  # See if there is a match
+                if not passes:
+                    break  # If we're not passing this assert break
+
+            if passes: self._score += 1  # If the assert passed increase the score
+            self.report.append(("ASSERT: " + assr.get('match'), passes))
+
+    @staticmethod
+    def handlesconfig(fd):
+        count = 0
+        for l in fd:
+            if "<AdvRegexTester" in l:
+                return True
+            elif count > 5:
+                return False
+            count += 1
+        return False
+
+    @classmethod
+    def parse_config(cls, configfile):
+        config = etree.parse(configfile).getroot()
+        qxpath = partial(config.xpath, namespaces={'ar':"http://moodlegradetool.com/advanced_regex"})
+        ret = {}
+
+        ret['qxpath'] = qxpath
+        ret['name'] = qxpath('./ar:name/text()')[0].strip()
+        main = qxpath('./ar:main/text()')
+        if main:
+            ret['main'] = main[0].strip()
+
+        regexes = {}
+        for ele in qxpath("./ar:Definitions/ar:Regex"):
+            regexes[ele.attrib['id']] = re.compile(ele.text)
+        ret['regexes'] = regexes
+        inputs = {}
+        for ele in qxpath("./ar:Definitions/ar:input"):
+            inputs[ele.attrib['id']] = ele.text.strip()
+        ret['inputs'] = inputs
+        ret['files'] = defaultdict(list)
+
+        for ele in qxpath("./ar:Definitions/ar:file"):
+            id = 'Default' if not 'id' in ele.attrib else ele.attrib['id']
+            ret['files'][id].append(FileMapping(*[s.strip() for s in ele.text.split(':')]))
+
+        ret['tree'] = config
+        return ret
+
+    @property
+    def score(self):
+        return self._score
+
 
 ManualTest.parse_config('Manual')
 
 RegexTester.register()
+
+AdvancedRegexTester.register()

@@ -74,9 +74,10 @@ class TestsSelector(npyscreen.Form):
     def create(self):
         self.name = "Test selection"
         tlist = tests.keys()
+        ltlist = len(tlist)
 
         self.selector = self.add(npyscreen.MultiSelect, name='Select Tests to automatically run: ', values=tlist,
-                                 max_height=len(tlist))
+                                 max_height=ltlist if ltlist > 1 else 2)
         self.add(npyscreen.FixedText, name="", value="NOTE: You will have the option to run manual later")
 
 
@@ -183,7 +184,7 @@ def setup(stdscr, func,*args,**kwargs):
 
 def break_curses(func, *args, **kwargs):
     #Tear down curses
-    stdscr.keypad(0)
+    #stdscr.keypad(0)
     curses.echo()
     curses.nocbreak()
     curses.endwin()

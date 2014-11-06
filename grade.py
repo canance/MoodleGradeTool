@@ -16,13 +16,15 @@ import zipfile
 import re
 import student
 import argparse
-from lxml import etree
+from reporting import XMLReport, XSLReport
 
 
-from testing import tests, testers
+from testing import tests, findtests
 
 from threading import Thread
 from Queue import Queue
+
+Student = student.Student
 
 MAX_BUILDS = 5
 
@@ -62,22 +64,14 @@ def main():
             z.extractall(path=path[:-4])  # Extract the files
 
         path = path[:-4]  # Set path to newly created directory
-	paths['folder'] = path
+    paths['folder'] = path
 
     if '.zip' == paths['config'][-4:]:
         paths['config'] = paths['config'][:-4]
 
     os.chdir(paths['config'])  # Change the working directory to the test configuration directory
 
-    for filename in os.listdir(paths['config']):
-        if filename.endswith(".test"):  # Find the files that end with .test in the grading dir
-            with open(filename, 'r') as f:  # Open the file
-                for tester in testers:
-                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(filename)  # If they do, give them the file path to parse
-                        break
-                    else:
-                        f.seek(0)  # Need to reset the file position for next check
+    findtests(paths['config'])
 
     os.chdir(paths['folder'])  # Change to the grading directory
 
@@ -95,16 +89,11 @@ def main():
     t = Thread(target=do_builds, args=(students, q))  # Set up the building thread
     t.start()
 
-    #root element for report
-    root = etree.Element("Results")
-
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
         #Get the next student in the list
         currentstudent = q.get()
         assert isinstance(currentstudent, student.Student)
-
-        stuelement = etree.SubElement(root, 'student', name=currentstudent.name)
 
         #Print out the information
         print "#" * 35, '\n'
@@ -128,10 +117,6 @@ def main():
 
         #Print the results
         for test in currentstudent.tests:
-            testelement = etree.SubElement(stuelement, 'test')
-            testelement.set("score", str(test.score))
-            testelement.set("possible", str(test.possible))
-            testelement.set("name", test.name)
             print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
         print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
@@ -160,8 +145,8 @@ def main():
     os.chdir(path)
     t.join()
 
-    with open('results.xml', 'w') as f:
-        f.write(etree.tostring(root, pretty_print=True))
+    #Save report
+    XMLReport(students).save('results.xml')
 
 @cliforms.forms
 def fileconfig(stdscr, folder="", config="", *args):
@@ -285,7 +270,7 @@ def prepare_directory(path):
     res = []
     for name, cl in tmp.iteritems():
         main = cl.pop(0)  # Assume first class is the main one
-        res.append(student.Student(name, main, cl))
+        res.append(Student(name, main, cl))
 
     return res
 
