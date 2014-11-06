@@ -324,6 +324,7 @@ class AdvancedRegexTester(Tester):
         return len(self.qxpath('//ar:assertion')) + len(self.qxpath('//ar:match'))
 
     def start(self):
+        self.report = []
         main = None  # Placeholder for the main test
         others = []  # Holds other tests
         for test in self.tree.xpath('./ar:Test', namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'}):  # Get all test nodes
@@ -366,7 +367,8 @@ class AdvancedRegexTester(Tester):
                     m = expr.search(out)  # Try to do a match
                     if m: self._score += 1  # If there is one raise the score
                     if 'id' in ele.attrib:  # If this match has an id
-                        asserts[ele.get('id')] = m  # Store it for later
+                        asserts[str(ele.get('id'))] = m  # Store it for later
+                    self.report.append(("MATCH: " + expr.pattern, bool(m)))
                 if ele.tag == "{http://moodlegradetool.com/advanced_regex}input":  # If its an input tag
                     txt = ele.text.strip()
                     #Try to find the input
@@ -379,8 +381,10 @@ class AdvancedRegexTester(Tester):
                 proc.sendline('')  # If this was a prompt send a new line
 
         for assr in qxpath('./ar:assertion'):  # For every assert tag in the test root
-            m = asserts.get(assr.get('match'), None)  # Get the corresponding match object
-            if not m: continue  # If there was no match continue
+            m = asserts.get(str(assr.get('match')), None)  # Get the corresponding match object
+            if not m:
+                self.report.append(("ASSERT: " + assr.get('match') + " - No Match", False))
+                continue  # If there was no match continue
 
             passes = True
             for grp in assr:  # Get all the match groups
@@ -392,9 +396,11 @@ class AdvancedRegexTester(Tester):
 
                 txt = grp.text.strip()  # Strip the match text
                 passes = passes and (m.group(id).strip() == txt)  # See if there is a match
-                if not passes: break  # If we're not passing this assert break
+                if not passes:
+                    break  # If we're not passing this assert break
 
             if passes: self._score += 1  # If the assert passed increase the score
+            self.report.append(("ASSERT: " + assr.get('match'), passes))
 
     @staticmethod
     def handlesconfig(fd):
