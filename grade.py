@@ -16,7 +16,7 @@ import zipfile
 import re
 import student
 import argparse
-from reporting import XMLReport
+from reporting import XMLReport, XSLReport
 
 
 from testing import tests, findtests
