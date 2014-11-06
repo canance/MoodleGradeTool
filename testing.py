@@ -1,6 +1,6 @@
 __author__ = 'phillip'
 
-import sys, os
+import sys,os
 
 import re
 import subprocess
@@ -19,6 +19,20 @@ testers = set()  # The available test types
 
 tests = {}  # The available tests
 
+def findtests(path):
+    tests.clear()
+    olddir = os.curdir
+    os.chdir(path)
+    for filename in os.listdir(path):
+        if filename.endswith(".test") or filename.endswith(".testx"):  # Find the files that end with .test in the grading dir
+            with open(path + '/' + filename, 'r') as f:  # Open the file
+                for tester in testers:
+                    if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
+                        tester.parse_config(path+ '/' + filename)  # If they do, give them the file path to parse
+                        break
+                    else:
+                        f.seek(0)  # Need to reset the file position for next check
+    os.chdir(olddir)
 
 def find_package(origfile, destfile, classname, path):
     classDeclaration = "public class " + classname
@@ -59,6 +73,7 @@ class TesterMeta(abc.ABCMeta):
 
         cls.parse_config = load_config  # Replace the class's parse_config
 
+
 class Tester(object):
     __metaclass__ = TesterMeta
 
@@ -68,6 +83,7 @@ class Tester(object):
         self.student = student
         self.clsName = clsName
         self.cwd = os.path.abspath(self.cwd.format(student=student, cls=clsName))
+        self._score = 0
 
     @abc.abstractmethod
     def start(self):
@@ -269,6 +285,7 @@ class RegexTester(Tester):
 
         #Call the java program with the input file set to stdin
         #Keep the output
+
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
@@ -279,10 +296,13 @@ class RegexTester(Tester):
                 print >> sys.stderr, e
 
         #Run all the detected regexes against the output
+        self.report = []
         for reg in self.regexes:
             m = reg.search(self._output)
             if m:
                 self._score += 1  # And count how many matches we got.
+
+            self.report.append((reg.pattern, bool(m)))
 
         #clean up filemanager
         for key in keys:

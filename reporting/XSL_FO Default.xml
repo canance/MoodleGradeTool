@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding= "UTF-8"?>
+
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fo="http://www.w3.org/1999/XSL/Format" version="1.0">
+    <xsl:template match="Results">
+        <fo:root>
+            <fo:layout-master-set>
+                <fo:simple-page-master master-name="report" margin="1in">
+                    <fo:region-body margin-top=".5in"/>
+                    <fo:region-before extent=".5in"/>
+                </fo:simple-page-master>
+            </fo:layout-master-set>
+            <fo:page-sequence master-reference="report">
+                <fo:static-content flow-name="xsl-region-before">
+                    <fo:block font-size="20pt" font-weight="bold">
+                        Grading report
+                    </fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                    <xsl:apply-templates/>
+                </fo:flow>
+            </fo:page-sequence>
+        </fo:root>
+
+    </xsl:template>
+    
+    <xsl:template match="student">
+        <fo:block-container>
+            <fo:block font-size="15pt" color="blue">
+                <xsl:value-of select="@name"/>
+            </fo:block>
+            <fo:list-block>
+                <xsl:apply-templates/>
+            </fo:list-block>
+        </fo:block-container>
+        
+    </xsl:template>
+
+    <xsl:template match="test">
+        <fo:list-item>
+            <fo:list-item-label>
+                <fo:block>-</fo:block>
+            </fo:list-item-label>
+            <fo:list-item-body>
+                <fo:block margin-left="7pt">
+                    <xsl:value-of select="@name"/>: <xsl:value-of select="@score"/>/<xsl:value-of select="@possible"/>
+                    <fo:list-block>
+                        <fo:list-item>
+                            <fo:list-item-label>
+                                <fo:block></fo:block>
+                            </fo:list-item-label>
+                            <fo:list-item-body>
+                                <fo:block></fo:block>
+                            </fo:list-item-body>
+                        </fo:list-item>
+                        <xsl:apply-templates/>
+                    </fo:list-block>
+                </fo:block>
+            </fo:list-item-body>
+        </fo:list-item>
+    </xsl:template>
+
+    <xsl:template match="part">
+        <fo:list-item>
+            <fo:list-item-label>
+                <fo:block></fo:block>
+            </fo:list-item-label>
+            <fo:list-item-body>
+
+                <xsl:if test="boolean(@passed = 'True')">
+                    <fo:block margin-left="10pt" color="green"><xsl:value-of select="@name"/></fo:block>
+                </xsl:if>
+                <xsl:if test="boolean(@passed = 'False')">
+                    <fo:block margin-left="10pt" color="red"><xsl:value-of select="@name"/></fo:block>
+                </xsl:if>
+            </fo:list-item-body>
+        </fo:list-item>
+    </xsl:template>
+
+
+</xsl:stylesheet>
