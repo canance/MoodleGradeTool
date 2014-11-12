@@ -14,6 +14,8 @@ studentslist = []  # Holds the main list of students
 mainview = None  # Holds the main window
 qapp = None  # Holds the main application
 maindispatch = None  # Holds the main QtDispatcher
+gradedia = None
+testdia = None
 
 mainthread = None  # Holds the main thread
 
@@ -23,5 +25,5 @@ def initialize_view():
         Ths method is responsible for setting up the main window.
         It stores the QApplication and the QDeclarative view in qapp and mainview
     """
-    global qapp, mainview
-    qapp, mainview = qmlinterface.initialize_view()
+    global qapp, mainview, gradedia, testdia
+    qapp, mainview, gradedia, testdia = qmlinterface.initialize_view()

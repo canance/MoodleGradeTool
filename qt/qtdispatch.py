@@ -56,18 +56,6 @@ class QTDispatcher(QObject):
         self.testsUpdated.connect(root.updateTestList)
         self.studentsUpdated.connect(root.updateStudents)
 
-        #This sets up the file dialogs
-        self.gradedia = QFileDialog()
-        self.gradedia.setFileMode(QFileDialog.Directory)
-        self.gradedia.setOption(QFileDialog.ShowDirsOnly, True)
-        self.gradedia.fileSelected.connect(root.updateGradeFolder)
-        root.gradeFolderBrowse.connect(self.gradedia.show)
-
-        self.testdia = QFileDialog()
-        self.testdia.setFileMode(QFileDialog.Directory)
-        self.testdia.setOption(QFileDialog.ShowDirsOnly, True)
-        self.testdia.fileSelected.connect(root.updateTestFolder)
-        root.testFolderBrowse.connect(self.testdia.show)
         self.oldgrade = ""
 
 

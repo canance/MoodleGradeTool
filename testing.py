@@ -70,7 +70,6 @@ class TesterMeta(abc.ABCMeta):
 
         cls.parse_config = load_config  # Replace the class's parse_config
 
-
 class Tester(object):
     __metaclass__ = TesterMeta
 
