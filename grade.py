@@ -16,7 +16,7 @@ import zipfile
 import re
 import student
 import argparse
-from lxml import etree
+from reporting import XMLReport, XSLReport
 
 
 from testing import tests, findtests
@@ -89,16 +89,11 @@ def main():
     t = Thread(target=do_builds, args=(students, q))  # Set up the building thread
     t.start()
 
-    #root element for report
-    root = etree.Element("Results")
-
     #Keep going while the thread is alive or while there are still programs to be worked
     while t.isAlive() or not q.empty():
         #Get the next student in the list
         currentstudent = q.get()
         assert isinstance(currentstudent, student.Student)
-
-        stuelement = etree.SubElement(root, 'student', name=currentstudent.name)
 
         #Print out the information
         print "#" * 35, '\n'
@@ -122,10 +117,6 @@ def main():
 
         #Print the results
         for test in currentstudent.tests:
-            testelement = etree.SubElement(stuelement, 'test')
-            testelement.set("score", str(test.score))
-            testelement.set("possible", str(test.possible))
-            testelement.set("name", test.name)
             print "\nThe program got a score of {test.score}/{test.possible} on {test.name}".format(test=test)
 
         print "Program got a total score of {s.score}/{s.possible}".format(s=currentstudent)
@@ -154,8 +145,8 @@ def main():
     os.chdir(path)
     t.join()
 
-    with open('results.xml', 'w') as f:
-        f.write(etree.tostring(root, pretty_print=True))
+    #Save report
+    XMLReport(students).save('results.xml')
 
 @cliforms.forms
 def fileconfig(stdscr, folder="", config="", *args):

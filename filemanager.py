@@ -3,9 +3,11 @@ __author__ = 'cory'
 import os
 import shutil
 import uuid
+from collections import namedtuple
 
 history = {}
 
+FileMapping = namedtuple('FileMapping', ('source', 'destination'))
 
 def copy(src, dst):
     """
