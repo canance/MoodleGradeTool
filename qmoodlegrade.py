@@ -12,9 +12,11 @@ def main():
     startview()
     while qt.mainview.rootObject() is None:
         pass
-    dispatch_thread = disthread()
+    dispatch_thread = QThread()
+    qt.maindispatch = QTDispatcher(qt.mainview)
+    qt.qapp.lastWindowClosed.connect(dispatch_thread.quit)
+    qt.maindispatch.moveToThread(dispatch_thread)
     dispatch_thread.start()
-    #start_dispatcher()
     qt.mainview.show()
     res = qt.qapp.exec_()
     dispatch_thread.wait()
