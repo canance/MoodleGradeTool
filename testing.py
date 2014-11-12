@@ -442,6 +442,9 @@ class AdvancedRegexTester(Tester):
         ret['tree'] = config
         return ret
 
+    def output(self):
+        return self._out.getvalue()
+
     @property
     def score(self):
         return self._score
