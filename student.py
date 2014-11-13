@@ -55,8 +55,8 @@ class Student(object):
         self.java_class = main_class
         self.classlist = otherclasses if not otherclasses is None else []
         self.directory = os.path.abspath('./' + name)
-        self._testingfinished = Event()
-        self.thread = None
+        self._testingfinished = Event()  # The testing event for asynchronous testing
+        self.thread = None  # The testing thread
 
         #Instansiate the test classes provided
         #We need to make sure that we don't modify the existing list
@@ -69,11 +69,20 @@ class Student(object):
 
     @requirestate((StudentState.not_tested, StudentState.ready))
     def async_tests(self):
-        self._testingfinished.clear()
-        self.thread = Thread(target=self.dotests)
-        self.thread.start()
+        """
+        Start the testing asynchronously. Use wait_tests to wait until the tests are done.
+        """
+        self._testingfinished.clear()  # Clear the event flag
+        self.thread = Thread(target=self.dotests)  # Create the thread
+        self.thread.start()  # And start it
 
     def wait_tests(self, timeout=None):
+        """
+        Wait until timeout to see if testing has finished. If timeout is None wait indefinitely.
+        :param timeout: The timeout value
+        :return: True if testing has finished, False otherwise
+        :rtype: bool
+        """
         return self._testingfinished.wait(timeout)
 
     @requirestate((StudentState.not_tested, StudentState.ready))
