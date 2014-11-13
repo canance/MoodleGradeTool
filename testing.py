@@ -73,7 +73,6 @@ class TesterMeta(abc.ABCMeta):
 
         cls.parse_config = load_config  # Replace the class's parse_config
 
-
 class Tester(object):
     __metaclass__ = TesterMeta
 
@@ -441,6 +440,9 @@ class AdvancedRegexTester(Tester):
 
         ret['tree'] = config
         return ret
+
+    def output(self):
+        return self._out.getvalue()
 
     @property
     def score(self):

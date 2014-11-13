@@ -10,7 +10,7 @@ from testing import findtests, tests
 from grade import prepare_directory
 import os
 from contextlib import contextmanager
-from types import MethodType
+from time import sleep
 
 @contextmanager
 def DisconnectSignal(signal, slot):
@@ -23,6 +23,7 @@ def DisconnectSignal(signal, slot):
     try:
         yield  # Return control
     finally:
+        pass
         signal.connect(slot)  # Reconnect the signal
 
 class QTDispatcher(QObject):
@@ -56,18 +57,6 @@ class QTDispatcher(QObject):
         self.testsUpdated.connect(root.updateTestList)
         self.studentsUpdated.connect(root.updateStudents)
 
-        #This sets up the file dialogs
-        self.gradedia = QFileDialog()
-        self.gradedia.setFileMode(QFileDialog.Directory)
-        self.gradedia.setOption(QFileDialog.ShowDirsOnly, True)
-        self.gradedia.fileSelected.connect(root.updateGradeFolder)
-        root.gradeFolderBrowse.connect(self.gradedia.show)
-
-        self.testdia = QFileDialog()
-        self.testdia.setFileMode(QFileDialog.Directory)
-        self.testdia.setOption(QFileDialog.ShowDirsOnly, True)
-        self.testdia.fileSelected.connect(root.updateTestFolder)
-        root.testFolderBrowse.connect(self.testdia.show)
         self.oldgrade = ""
 
 
@@ -81,10 +70,17 @@ class QTDispatcher(QObject):
                 curStudent = student  # Store the student
                 break
         #Send the test results
-        self.resultsUpdated.emit(ObjectListModel([TestWrapper(t) for t in curStudent.tests]))
+        l = ObjectListModel([TestWrapper(t) for t in curStudent.tests])
+        l.moveToThread(__init__.mainthread)
+        self.resultsUpdated.emit(l)
+        sleep(.005)
         #Get the tests that have outputs and add it too the source output object
         outputs = [curStudent.sourceobject] + [TestWrapper(t) for t in curStudent.tests if hasattr(t, 'output')]
-        self.outputsUpdated.emit(ObjectListModel(outputs))  # Send the outputs
+        l = ObjectListModel(outputs)
+        l.moveToThread(__init__.mainthread)
+        self.outputsUpdated.emit(l)  # Send the outputs
+        #TODO See if there is an alternative
+        sleep(.005)  # Delay to prevent segfault
 
 
     @Slot()
@@ -97,7 +93,12 @@ class QTDispatcher(QObject):
             path = self._root.property('testFolder')  # Get the configuration folder from the view
             findtests(str(path))  # Parse the test files
             self.testwrappers = [TestClassWrapper(t) for t in tests.itervalues()]  # Wrap the test classes
-            self.testsUpdated.emit(ObjectListModel(self.testwrappers))  # Send the list
+            l = ObjectListModel(self.testwrappers)
+            l.moveToThread(__init__.mainthread)
+            self.testsUpdated.emit(l)  # Send the
+
+        sleep(.005)  # Delay needed to prevent segfault
+
 
 
     @Slot()
@@ -112,7 +113,7 @@ class QTDispatcher(QObject):
                 self.oldgrade = self._root.property('gradeFolder')  # If so store the new folder
                 os.chdir(self.oldgrade)  # Change to that directory
                 self.populate_students()  # And reset the students list
-
+                sleep(.005)
             for student in __init__.studentslist:  # For every student
                 #Connect the status changed signal to the starttest slot
                 student.status_nameChanged.connect(self.starttest)
@@ -129,7 +130,7 @@ class QTDispatcher(QObject):
         if student.state == StudentState.build_error or student.state == StudentState.not_tested:
             student.status_nameChanged.disconnect(self.starttest)
         if student.state == StudentState.not_tested:
-            student.dotests()  # Do the tests if we're ready
+            student.async_tests()  # Do the tests if we're ready
 
     @Slot()
     def setuptests(self):
@@ -150,4 +151,7 @@ class QTDispatcher(QObject):
         """
         #Get the grade folder and prepare the directory
         __init__.studentslist = prepare_directory(str(self._root.property('gradeFolder')))
-        self.studentsUpdated.emit(StudentQList(__init__.studentslist))  # Send the updated list
+        l = StudentQList(__init__.studentslist)
+        l.moveToThread(__init__.mainthread)
+        self.studentsUpdated.emit(l)  # Send the updated list
+        sleep(.005)  # Delay to prevent segfault

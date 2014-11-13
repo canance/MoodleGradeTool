@@ -2,7 +2,7 @@ __author__ = 'phillip'
 
 import PySide.QtCore as QtCore
 from PySide.QtCore import QUrl, QObject, Signal
-from PySide.QtGui import QApplication
+from PySide.QtGui import QApplication, QFileDialog
 from PySide.QtDeclarative import QDeclarativeView
 
 import PySide.QtDeclarative
@@ -77,7 +77,22 @@ def initialize_view():
     url = QUrl.fromLocalFile("./qt/MoodleGrade.qml")  # Make the url for the file
     ret.setSource(url)  # Load the QML file
     ret.setResizeMode(QDeclarativeView.SizeRootObjectToView)
-    return app, ret  # Return the QApplication and the QDeclarativeView
+    root = ret.rootObject()
+    #This sets up the file dialogs
+    gradedia = QFileDialog()
+    gradedia.setFileMode(QFileDialog.Directory)
+    gradedia.setOption(QFileDialog.ShowDirsOnly, True)
+    gradedia.fileSelected.connect(root.updateGradeFolder)
+
+    root.gradeFolderBrowse.connect(gradedia.show)
+
+    testdia = QFileDialog()
+    testdia.setFileMode(QFileDialog.Directory)
+    testdia.setOption(QFileDialog.ShowDirsOnly, True)
+    testdia.fileSelected.connect(root.updateTestFolder)
+    root.testFolderBrowse.connect(testdia.show)
+
+    return app, ret, gradedia, testdia  # Return the QApplication and the QDeclarativeView
 
 
 if __name__ == "__main__":

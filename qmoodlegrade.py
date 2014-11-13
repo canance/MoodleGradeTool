@@ -8,33 +8,17 @@ from qt.qtdispatch import QTDispatcher
 from PySide.QtCore import QThread
 
 def main():
-    qt.mainthread = QThread.currentThread()
-    startview()
-    while qt.mainview.rootObject() is None:
-        pass
-    #dispatch_thread = disthread()
-    #dispatch_thread.start()
-    start_dispatcher()
-    qt.mainview.show()
-    res = qt.qapp.exec_()
-    #dispatch_thread.wait()
+    qt.mainthread = QThread.currentThread()  # Store current thread
+    qt.initialize_view()  # Get the view ready
+    dispatch_thread = QThread()  # The QThread to put the dispatcher on
+    qt.maindispatch = QTDispatcher(qt.mainview)  # Set up the dispatcher
+    qt.qapp.lastWindowClosed.connect(dispatch_thread.quit)  # Connect the close signal to the thread quit signal
+    qt.maindispatch.moveToThread(dispatch_thread)  # Move the dispatcher to the new thread
+    dispatch_thread.start()  # Start the thread
+    qt.mainview.show()  # Show the main window
+    res = qt.qapp.exec_()  # Start the event loop, exits when the last window has been closed
+    dispatch_thread.wait()  # Wait for the dispatcher thread to finish
     sys.exit(res)
-
-
-def startview():
-    qt.initialize_view()
-
-def start_dispatcher():
-    qt.maindispatch = QTDispatcher(qt.mainview)
-    cur = QThread.currentThread()
-    if not (qt.mainthread is None or cur is qt.mainthread):
-        qt.qapp.lastWindowClosed.connect(cur.quit())
-        cur.exec_()
-
-class disthread(QThread):
-
-    def run(self, *args, **kwargs):
-        start_dispatcher()
 
 if __name__ == "__main__":
     main()
