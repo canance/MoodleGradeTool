@@ -1,7 +1,8 @@
+from moodlegradetool import testing
+
 __author__ = 'phillip'
 
 from PySide.QtCore import QObject, Property as QProperty, Signal, QAbstractListModel
-import testing
 
 import types
 

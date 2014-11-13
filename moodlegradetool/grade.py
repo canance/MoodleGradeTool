@@ -6,23 +6,21 @@
 # Assumptions: Submissions were mass-downloaded from Moodle and unzipped.
 ##########################################################################
 
-import cliforms
-
 import os
 import sys
 import shutil
-
 import zipfile
 import re
-import student
-import argparse
-from reporting import XMLReport, XSLReport
-
-
-from testing import tests, findtests
-
 from threading import Thread
 from Queue import Queue
+
+import argparse
+
+import cliforms
+import student
+from moodlegradetool.reporting import XMLReport
+from testing import tests, findtests
+
 
 Student = student.Student
 

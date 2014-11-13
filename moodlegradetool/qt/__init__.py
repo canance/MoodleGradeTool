@@ -1,11 +1,10 @@
+from moodlegradetool import grade
+from moodlegradetool.qt import QMLStudent, qtdispatch, qmlinterface
+
 __author__ = 'phillip'
 
 import sys
 import os.path
-import qmlinterface
-import qtdispatch
-import grade
-import QMLStudent
 
 grade.Student = QMLStudent.QMLStudent  # Change the default student class used
 sys.path.append(os.path.abspath(".."))  # Add the parent directory to the python path

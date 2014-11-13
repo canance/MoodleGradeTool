@@ -1,16 +1,18 @@
 __author__ = 'phillip'
 
+import os
+from contextlib import contextmanager
+from time import sleep
+
 from PySide.QtCore import QObject, Slot, Signal
-from PySide.QtGui import QFileDialog
+
 import __init__
 from QMLStudent import StudentQList, QMLStudent
 from student import StudentState
 from qt_wrappers import TestWrapper, TestClassWrapper, ObjectListModel
-from testing import findtests, tests
+from moodlegradetool.testing import findtests, tests
 from grade import prepare_directory
-import os
-from contextlib import contextmanager
-from time import sleep
+
 
 @contextmanager
 def DisconnectSignal(signal, slot):

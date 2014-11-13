@@ -1,11 +1,14 @@
 __author__ = 'phillip'
 
-import npyscreen
 import curses
 import locale
-from testing import tests
 import os.path
 from os.path import abspath
+
+import npyscreen
+
+from moodlegradetool.testing import tests
+
 
 theme = npyscreen.Themes.TransparentThemeLightText
 

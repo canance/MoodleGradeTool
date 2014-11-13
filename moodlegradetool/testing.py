@@ -1,3 +1,5 @@
+from moodlegradetool import filemanager
+
 __author__ = 'phillip'
 
 import sys,os
@@ -5,7 +7,6 @@ import sys,os
 import re
 import subprocess
 import abc
-import filemanager
 import datetime
 import pexpect, fdpexpect
 import StringIO

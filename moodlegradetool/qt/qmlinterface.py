@@ -1,17 +1,16 @@
+from moodlegradetool import student
+from moodlegradetool.qt import QMLStudent, qtdispatch
+
 __author__ = 'phillip'
 
 import PySide.QtCore as QtCore
-from PySide.QtCore import QUrl, QObject, Signal
+from PySide.QtCore import QUrl
 from PySide.QtGui import QApplication, QFileDialog
 from PySide.QtDeclarative import QDeclarativeView
 
-import PySide.QtDeclarative
-import QMLStudent
-import student
-import qtdispatch
 from sys import argv, exit
-from qt_wrappers import *
-from student import Student
+from moodlegradetool.qt.qt_wrappers import *
+from moodlegradetool.student import Student
 
 app = None
 mainview = None

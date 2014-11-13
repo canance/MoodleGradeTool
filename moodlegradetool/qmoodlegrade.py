@@ -2,10 +2,13 @@ __author__ = 'phillip'
 
 studentslist = None
 
-import qt
 import sys
-from qt.qtdispatch import QTDispatcher
+
 from PySide.QtCore import QThread
+
+import qt
+from moodlegradetool.qt.qtdispatch import QTDispatcher
+
 
 def main():
     qt.mainthread = QThread.currentThread()  # Store current thread
