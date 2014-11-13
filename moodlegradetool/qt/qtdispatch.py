@@ -8,9 +8,9 @@ from PySide.QtCore import QObject, Slot, Signal
 
 import __init__
 from QMLStudent import StudentQList, QMLStudent
-from student import StudentState
+from ..student import StudentState
 from qt_wrappers import TestWrapper, TestClassWrapper, ObjectListModel
-from moodlegradetool.testing import findtests, tests
+from ..testing import findtests, tests
 from grade import prepare_directory
 
 

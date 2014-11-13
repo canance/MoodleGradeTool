@@ -5,8 +5,8 @@ import threading
 
 from PySide.QtCore import Property as QProperty, Signal, Slot, QObject, QAbstractListModel
 
-import student
-from moodlegradetool.qt.sourceformatting import SourceOutput
+from .. import student
+from sourceformatting import SourceOutput
 
 
 def proc_wait_sig(proc, sig, owner):

@@ -6,7 +6,7 @@ import sys
 
 from PySide.QtCore import QThread
 
-import qt
+import moodlegradetool.qt as qt
 from moodlegradetool.qt.qtdispatch import QTDispatcher
 
 
