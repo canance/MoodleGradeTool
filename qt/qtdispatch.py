@@ -130,7 +130,7 @@ class QTDispatcher(QObject):
         if student.state == StudentState.build_error or student.state == StudentState.not_tested:
             student.status_nameChanged.disconnect(self.starttest)
         if student.state == StudentState.not_tested:
-            student.dotests()  # Do the tests if we're ready
+            student.async_tests()  # Do the tests if we're ready
 
     @Slot()
     def setuptests(self):

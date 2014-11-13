@@ -4,6 +4,7 @@ __author__ = 'phillip'
 import os
 import subprocess
 import datetime
+from threading import Thread, Event
 
 from enum import Enum
 
@@ -54,6 +55,8 @@ class Student(object):
         self.java_class = main_class
         self.classlist = otherclasses if not otherclasses is None else []
         self.directory = os.path.abspath('./' + name)
+        self._testingfinished = Event()
+        self.thread = None
 
         #Instansiate the test classes provided
         #We need to make sure that we don't modify the existing list
@@ -65,6 +68,15 @@ class Student(object):
         self.state = StudentState.not_built  # Set the state
 
     @requirestate((StudentState.not_tested, StudentState.ready))
+    def async_tests(self):
+        self._testingfinished.clear()
+        self.thread = Thread(target=self.dotests)
+        self.thread.start()
+
+    def wait_tests(self, timeout=None):
+        return self._testingfinished.wait(timeout)
+
+    @requirestate((StudentState.not_tested, StudentState.ready))
     def dotests(self):
         """Performs all the tests registered with this student."""
 
@@ -73,6 +85,7 @@ class Student(object):
             test.start()
 
         self.state = StudentState.ready
+        self._testingfinished.set()
 
     @requirestate((StudentState.not_tested, StudentState.ready))
     def dotest(self, cls):
