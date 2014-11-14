@@ -9,9 +9,13 @@ from collections import namedtuple
 reporttypes = set()
 
 FileTypes = namedtuple("FileTypes", ("name", "extensions"))
+#FileTypes.__doc__ = """Structure for the file types the report supports
+#                        :ivar name: The name of the file type
+#                        :ivar extensions: A list of file extensions (the first one is the default)"""
 
 
 class Report(object):
+    """Abstract: Base reporting class"""
     __metaclass__ = ABCMeta
 
     filetypes = FileTypes("Invalid", (".check", ".your", ".code"))
@@ -25,6 +29,7 @@ class Report(object):
         """
         Abstract Method: Parse the given source and return a raw report. This could usually be a string, but depends
         on the report type.
+
         :return: Raw report object
         """
         pass
@@ -33,18 +38,27 @@ class Report(object):
         return str(self.generate_report())
 
     def save(self, fd):
+        """Writes this report to the given file.
+
+        :param fd: A file name or file-like object"""
         if isinstance(fd, basestring):
-            fd = open(fd, mode="w")
-        fd.write(str(self))
+            with open(fd, mode="w") as f:
+                f.write(str(self))
+        else:
+            fd.write(str(self))
 
     @classmethod
     def register(cls):
+        """
+        Registers this report type with the reports list.
+        """
         reporttypes.add(cls)
 
 
 class XMLReport(Report):
+    """Makes an xml report from the students."""
 
-    filetypes = FileTypes("XML Grade Report", (".xml"))
+    filetypes = FileTypes("XML Grade Report", (".xml", ))
 
     def __init__(self, studentlist, **kwargs):
         super(XMLReport, self).__init__(**kwargs)
@@ -55,6 +69,7 @@ class XMLReport(Report):
         Generates an XML file from the list of students in studentlist.
 
         :return: An LXML etree representing the report
+        :rtype: lxml.etree._ElementTree
         """
         root = ET.Element("Results")
         for s in self.studentlist:

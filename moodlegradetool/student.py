@@ -1,3 +1,5 @@
+"""Manages student information such as student name, available java classes, tests run and results."""
+
 __author__ = 'phillip'
 # Requires enum34 from python package index
 
@@ -38,15 +40,27 @@ def requirestate(state):
 
 
 class StudentState(Enum):
-    not_built = 0  # The program has not been built yet
-    building = 1  # The program is in the process of building
-    build_error = -1  # There was a problem during building
-    not_tested = 2  # The program built ok, but has not been tested yet
-    testing = 3  # The program is in the process of being tested
-    ready = 4  # The program has been tested
+    """An enumeration of the different states student objects can be in."""
+    not_built = 0  #: The program has not been built yet
+    building = 1  #: The program is in the process of building
+    build_error = -1  #: There was a problem during building
+    not_tested = 2  #: The program built ok, but has not been tested yet
+    testing = 3  #: The program is in the process of being tested
+    ready = 4  #: The program has been tested
 
 
 class Student(object):
+    """
+    Manages the java classes and tests for a particular student. Each student has a corresponding folder in the
+    grading folder.
+
+    :cvar tests: In a class context, tests holds the test classes that should be run
+    :ivar tests: In an instance context, tests holds the test instances for this student
+    :ivar name: The students name
+    :ivar java_class: The main java class that should be tested
+    :ivar classlist: Other java classes that were detected for the student
+    :ivar directory: The directory for the student
+    """
     tests = []
 
     def __init__(self, name, main_class, otherclasses=None, **kwargs):
@@ -71,6 +85,8 @@ class Student(object):
     def async_tests(self):
         """
         Start the testing asynchronously. Use wait_tests to wait until the tests are done.
+
+        :Requires: not_tested or ready state
         """
         self._testingfinished.clear()  # Clear the event flag
         self.thread = Thread(target=self.dotests)  # Create the thread
@@ -79,6 +95,7 @@ class Student(object):
     def wait_tests(self, timeout=None):
         """
         Wait until timeout to see if testing has finished. If timeout is None wait indefinitely.
+
         :param timeout: The timeout value
         :return: True if testing has finished, False otherwise
         :rtype: bool
@@ -87,7 +104,10 @@ class Student(object):
 
     @requirestate((StudentState.not_tested, StudentState.ready))
     def dotests(self):
-        """Performs all the tests registered with this student."""
+        """Performs all the tests registered with this student.
+
+        :Requires: not_tested or ready state
+        """
 
         self.state = StudentState.testing
         for test in self.tests:
@@ -100,6 +120,9 @@ class Student(object):
     def dotest(self, cls):
         """
         Performs a specific test. Adds the test to the students test list if not there already.
+
+        :Requires: not_tested or ready states
+
         :param cls: The test class to perform
         """
         t = None
@@ -116,6 +139,8 @@ class Student(object):
     def dobuild(self):
         """
         Builds the program.
+
+        :Requires: not_built state
         """
 
         try:
@@ -137,6 +162,9 @@ class Student(object):
     def score(self):
         """
         Calculates the students score
+
+        :Requires: Ready state
+
         :return: The total score of all the tests
         :rtype: int
         """
@@ -146,6 +174,7 @@ class Student(object):
     def possible(self):
         """
         Calculates the students possible score
+
         :return: The total possible score for all the tests
         :rtype: int
         """
@@ -169,6 +198,12 @@ class Student(object):
 
     @property
     def source(self):
+        """
+        The source code for the main java class
+
+        :return: Source code as string
+        :rtype: str
+        """
         java_path = "/".join(self.java_class.split('.'))
         with open(self.directory+"/"+java_path+".java", 'r') as f:
             ret = f.read()

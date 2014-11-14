@@ -1,8 +1,10 @@
+"""The classes used to run the tests."""
+
 from moodlegradetool import filemanager
 
 __author__ = 'phillip'
 
-import sys,os
+import sys, os
 
 import re
 import subprocess
@@ -20,25 +22,34 @@ testers = set()  # The available test types
 
 tests = {}  # The available tests
 
+
 def findtests(path):
+    """
+    Locate test configuration files. Any suported files that are found have the corresponding class generated and
+    added to tests, keyed to the name.
+
+    :param path: The path to search
+    """
     tests.clear()
     olddir = os.curdir
     os.chdir(path)
     for filename in os.listdir(path):
-        if filename.endswith(".test") or filename.endswith(".testx"):  # Find the files that end with .test in the grading dir
+        if filename.endswith(".test") or filename.endswith(
+                ".testx"):  # Find the files that end with .test in the grading dir
             with open(path + '/' + filename, 'r') as f:  # Open the file
                 for tester in testers:
                     if tester.handlesconfig(f):  # And ask the testers if they handle that kind of file
-                        tester.parse_config(path+ '/' + filename)  # If they do, give them the file path to parse
+                        tester.parse_config(path + '/' + filename)  # If they do, give them the file path to parse
                         break
                     else:
                         f.seek(0)  # Need to reset the file position for next check
     os.chdir(olddir)
 
+
 def find_package(origfile, destfile, classname, path):
     classDeclaration = "public class " + classname
     package = None
-    #Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
+    # Use context manager for handling file objects (no need to explicitly close the file) -Phillip Wall
     with open(origfile) as fHandle:
         for line in fHandle:
             if classDeclaration in line:
@@ -58,12 +69,13 @@ def find_package(origfile, destfile, classname, path):
                 return destfile, classname, package
     return destfile, classname, package
 
-class TesterMeta(abc.ABCMeta):
 
+class TesterMeta(abc.ABCMeta):
+    """Metaclass for testers. This is what takes the dict returned by parse_config and generates the subclass"""
     def __init__(cls, clsname, bases, attr):
         super(TesterMeta, cls).__init__(clsname, bases, attr)
 
-        parser = cls.parse_config # Get the classes parse config_function
+        parser = cls.parse_config  # Get the class's parse config_function
 
         @classmethod
         def load_config(clss, configfile):  # This will replace parse_config on the class
@@ -74,7 +86,15 @@ class TesterMeta(abc.ABCMeta):
 
         cls.parse_config = load_config  # Replace the class's parse_config
 
+
 class Tester(object):
+    """Base class for testers. All tester classes should inherit from this.
+
+    :cvar cwd: In a class context, a format string with student and clsName fields.
+    :ivar cwd: In an instance context, cwd is formatted and made absolute. Holds the working directory for this test
+    :ivar student: Holds the students name
+    :ivar claName: Holds the name of the main class
+    """
     __metaclass__ = TesterMeta
 
     cwd = './{student}'
@@ -87,6 +107,9 @@ class Tester(object):
 
     @abc.abstractmethod
     def start(self):
+        """
+        **Abstract:** Called to start the test
+        """
         pass
 
     @classmethod
@@ -110,6 +133,7 @@ class Tester(object):
     def score(self):
         """
         The score the program got.
+
         :rtype: int
         """
         pass
@@ -118,6 +142,7 @@ class Tester(object):
     def possible(self):
         """
         The possible score on this test.
+
         :rtype: int
         """
         pass
@@ -136,7 +161,12 @@ class Tester(object):
     def failed(self):
         return self.score() == self.possible()
 
+
 class ManualTest(Tester):
+    """Simple tester that allows for manual interaction with the program at the command line.
+    The std* attributes can be modified to direct the java program's input and output."""
+
+    stdin, stdout, sterr = sys.stdin, sys.stdout, sys.stderr
 
     @classmethod
     def parse_config(cls, configfile):
@@ -151,13 +181,22 @@ class ManualTest(Tester):
         return 1
 
     def start(self):
-        subprocess.call(('java', self.clsName), stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=self.cwd)
+        subprocess.call(('java', self.clsName), stdin=self.stdin, stdout=self.stdout, stderr=self.stderr, cwd=self.cwd)
 
     @staticmethod
     def handlesconfig(path):
         return False
 
+
 class RegexTester(Tester):
+    """A simple tester that can take an input file and feed it to the java program. It tests the output against a
+    list of regexes. Each matched regex is worth on point. It has a simple configuration format.
+
+    :ivar name: The tests name
+    :ivar main: The class to test, if None uses the main class from the student
+    :ivar regexs: The list of regexs to comapare the output to
+    :ivar input_file: The file to pass to the java program
+    """
 
     @classmethod
     def parse_config(cls, configfile):
@@ -166,7 +205,7 @@ class RegexTester(Tester):
         ret['cp'] = []
         ret['main'] = None
 
-        detectors = (cls._detect_name, cls._detect_infile,  cls._detect_regex, cls._detect_cp, cls._detect_main)
+        detectors = (cls._detect_name, cls._detect_infile, cls._detect_regex, cls._detect_cp, cls._detect_main)
         with open(configfile) as f:
             for line in f:
                 line = line.strip()
@@ -222,6 +261,8 @@ class RegexTester(Tester):
 
     def output(self):
         """
+        The output from the java program.
+
         :returns: The output from the last run
         :raises: AttributeError if called before start has been called.
         :rtype: String
@@ -235,7 +276,7 @@ class RegexTester(Tester):
 
     def start(self):
 
-        #handle file copying
+        # handle file copying
         #start filemanager copy, get key
         keys = []
         for path in self.cp:
@@ -274,12 +315,11 @@ class RegexTester(Tester):
                 log.write("Starting build of %s.java\n\n" % clsname)
                 #Start the build
                 proc = subprocess.Popen(('javac', "/".join(clsname.split(".")) + ".java"),
-                                             cwd=self.cwd, stdout=log, stderr=subprocess.STDOUT)
+                                        cwd=self.cwd, stdout=log, stderr=subprocess.STDOUT)
                 proc.wait()
             #set self.clsname to main class
 
             self.clsName = clsname
-
 
         self._score = 0
 
@@ -289,7 +329,7 @@ class RegexTester(Tester):
         with open(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
-                                                   stderr=subprocess.STDOUT, cwd=self.cwd)
+                                                       stderr=subprocess.STDOUT, cwd=self.cwd)
             except subprocess.CalledProcessError, e:
                 self._output = e.output + "\n" + str(e)
                 print "Program did not behave according to test information.  Please try running manually."
@@ -316,7 +356,18 @@ class RegexTester(Tester):
     def possible(self):
         return len(self.regexes)
 
+
 class AdvancedRegexTester(Tester):
+    """
+    A more advanced regex tester. Pieces of data to be passed are included in the configuration file and regexes can
+    include capture groups. The capture groups can then have further tests run on them to see if the program output
+    the right value. Each matched regex is worth one point and each assertion is worth another point.
+
+    :ivar name: The tests name
+    :ivar qxpath; Partial function to perform xpath queries on the tree with the namespaces qualified
+    :ivar regexs: The list of regexs used in the tests
+    :ivar tree: The xml tree of the parsed file.
+    """
     _score = 0
 
     @property
@@ -327,7 +378,8 @@ class AdvancedRegexTester(Tester):
         self.report = []
         main = None  # Placeholder for the main test
         others = []  # Holds other tests
-        for test in self.tree.xpath('./ar:Test', namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'}):  # Get all test nodes
+        for test in self.tree.xpath('./ar:Test', namespaces={
+            'ar': 'http://moodlegradetool.com/advanced_regex'}):  # Get all test nodes
             if (not 'file' in test.attrib) and not main:  # See if this is the first test with out a filename
                 main = test  # Set it to be the main test
             else:
@@ -347,7 +399,7 @@ class AdvancedRegexTester(Tester):
                 self.do_test(fexp, test)  # Do the test
 
     def do_test(self, proc, testroot):
-        #assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
+        # assert isinstance(testroot, etree.ElementBase)  # Make sure passed testroot is an element
         asserts = {}  # Dict for storing matches used in asserts
         qxpath = partial(testroot.xpath, namespaces={'ar': 'http://moodlegradetool.com/advanced_regex'})
         for exp in qxpath('./ar:Expect'):  # For every Expect node in testroot
@@ -360,7 +412,7 @@ class AdvancedRegexTester(Tester):
                     proc.expect(pexpect.EOF)  # Else wait until end of file
             except pexpect.TIMEOUT:
                 break
-            out = proc.before #+ proc.after  # Get everything before and up to the match
+            out = proc.before  #+ proc.after  # Get everything before and up to the match
             for ele in exp:  # For every element int the expect node
                 if ele.tag == "{http://moodlegradetool.com/advanced_regex}match":  # If its a match tag find the regex
                     expr = self.regexes[ele.text]  # Get the regex
@@ -373,7 +425,7 @@ class AdvancedRegexTester(Tester):
                     txt = ele.text.strip()
                     #Try to find the input
                     if txt in self.inputs:
-                        proc.send(self.inputs[txt]+' ')  # Send a normal input followed by a space
+                        proc.send(self.inputs[txt] + ' ')  # Send a normal input followed by a space
                     elif txt in self.files:
                         fname = self.files[txt].destination  # If its a file input
                         proc.send(fname + ' ')  # Send the destination file name
@@ -416,7 +468,7 @@ class AdvancedRegexTester(Tester):
     @classmethod
     def parse_config(cls, configfile):
         config = etree.parse(configfile).getroot()
-        qxpath = partial(config.xpath, namespaces={'ar':"http://moodlegradetool.com/advanced_regex"})
+        qxpath = partial(config.xpath, namespaces={'ar': "http://moodlegradetool.com/advanced_regex"})
         ret = {}
 
         ret['qxpath'] = qxpath
