@@ -1,3 +1,5 @@
+"""Contains various npyscreen forms that are used for the cli interface"""
+
 __author__ = 'phillip'
 
 import curses
@@ -41,6 +43,10 @@ class FileDialog(npyscreen.ActionForm):
         self.set_editing(self.directory)
 
     def on_ok(self):
+        """
+        The code that runs when the ok button is selected, checks for invalid directories.
+        If either directory is invalid, displays error message and resumes editing.
+        """
 
         #Get values for local access (faster and easier)
         path = self.directory.value
@@ -65,6 +71,7 @@ class FileDialog(npyscreen.ActionForm):
             self.editing = True  # And set editing back to true so the form knows we need to stay
 
     def on_cancel(self):
+        """Runs when the cancel button is pressed. Resets values back to what they were originally."""
         #Reset to what was passed in
         self.directory.value = self.fpath
         self.testconf.value = self.cpath
@@ -183,23 +190,3 @@ def setup(stdscr, func,*args,**kwargs):
     """Used to set the npyscreen theme"""
     npyscreen.setTheme(theme)
     return func(stdscr, *args, **kwargs)
-
-
-def break_curses(func, *args, **kwargs):
-    #Tear down curses
-    #stdscr.keypad(0)
-    curses.echo()
-    curses.nocbreak()
-    curses.endwin()
-    ret = func(*args, **kwargs)
-    # Initialize curses
-    stdscr = curses.initscr()
-    curses.noecho()
-    curses.cbreak()
-    stdscr.keypad(1)
-    try:
-        curses.start_color()
-    except:
-        pass
-
-    return ret

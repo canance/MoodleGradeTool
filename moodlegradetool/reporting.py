@@ -1,3 +1,5 @@
+"""Contains classes for making reports from the students list."""
+
 __author__ = 'phillip'
 
 from lxml import etree as ET

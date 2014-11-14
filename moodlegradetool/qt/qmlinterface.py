@@ -1,4 +1,4 @@
-
+"""Module to set up the qml interface"""
 
 __author__ = 'phillip'
 
@@ -10,6 +10,12 @@ from sys import argv
 
 
 def initialize_view():
+    """
+    Initializes the main qml view and needed components.
+
+    :return: A tuple with the QApplication, the qml view, and the Grading folder and Configuration folder dialogs
+    :rtype: tuple
+    """
     app = QApplication(argv)  # Make a new QApplication
     ret = QDeclarativeView()  # Set up the declarative view
 

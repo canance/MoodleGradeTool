@@ -1,3 +1,6 @@
+"""Module for all file management functions. Handles preparing the grading directory, copying files the tests need, and
+cleaning up after the tests are done. """
+
 __author__ = 'cory'
 
 import re
@@ -18,6 +21,7 @@ Student = student.Student
 def copy(src, dst):
     """
     Copies the files to the students working path.
+
     :param paths: a list of tuples consisting of (src_file, dst_file)
     :param stuName: name of student
     :return: a key to be used when the resources need to be cleaned (removed)
@@ -38,6 +42,7 @@ def copy(src, dst):
 def bulkcopy(paths, stuname):
     """
     Copies the files to the students working path.
+
     :param paths: a list of tuples consisting of (src_file, dst_file)
     :param stuName: name of student
     :return: a key to be used when the resources need to be cleaned (removed)
@@ -60,6 +65,7 @@ def bulkcopy(paths, stuname):
 def clean(key):
     """
     Deletes the files associated with specified key
+
     :param key: a key that was returned when calling copy()
     """
     record = history.pop(key)

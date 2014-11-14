@@ -1,3 +1,5 @@
+"""This module holds the main interface between QML and python code"""
+
 __author__ = 'phillip'
 
 import os
@@ -16,8 +18,9 @@ from grade import prepare_directory
 
 @contextmanager
 def DisconnectSignal(signal, slot):
-    """
+    """ DisconnectSignal(signal, slot)
     Context manager that will disconnect and reconnect a signal-slot pair.
+
     :param signal: The signal to manage
     :param slot: The slot to manage
     """
@@ -25,10 +28,11 @@ def DisconnectSignal(signal, slot):
     try:
         yield  # Return control
     finally:
-        pass
         signal.connect(slot)  # Reconnect the signal
 
+
 class QTDispatcher(QObject):
+    """Responsible for receiving signals from QML and passing the results back to QML"""
 
     # Signals to update the interface
     resultsUpdated = Signal(ObjectListModel)
@@ -65,6 +69,12 @@ class QTDispatcher(QObject):
 
     @Slot(int)
     def studentchanged(self, id):
+        """
+        Slot: Handles different student records being selected. It finds the matching student object, and passes
+        detailed test results and outputs back to QML through the resultsUpdated and outputsUpdated signals.
+
+        :param id: The id of the selected student
+        """
         curStudent = None
         #Search the students list for a student with the matching ID
         for student in __init__.studentslist:
@@ -88,7 +98,7 @@ class QTDispatcher(QObject):
     @Slot()
     def parsetests(self):
         """
-        Parses the test configuration files
+        Slot: Parses the test configuration files, passes the available test back through testsUpdated signal
         """
         #Disconnect this slot while the function is running
         with DisconnectSignal(self._root.parseTests, self.parsetests):
@@ -106,7 +116,7 @@ class QTDispatcher(QObject):
     @Slot()
     def dobuilds(self):
         """
-        Performs the student builds and sets the tests to start when the build is finished.
+        Slot: Performs the student builds and sets the tests to start when the build is finished. See starttest.
         """
         #Disconnect this slot while the function is running
         with DisconnectSignal(self._root.startTesting, self.dobuilds):
@@ -125,7 +135,8 @@ class QTDispatcher(QObject):
     @Slot(QObject)
     def starttest(self, student):
         """
-        Starts the tests. This slot is connected by dobuilds when the build is started.
+        Slot: Starts the tests. This slot is connected by dobuilds when the build is started.
+
         :param student: The student that sent the signal
         """
         #Disconnect the signal if there was either a build error or if the build was finished
@@ -137,7 +148,8 @@ class QTDispatcher(QObject):
     @Slot()
     def setuptests(self):
         """
-        This will setup the tests selected to be run.
+        Slot: This will setup the tests selected to be run. It updates the student class's test list and calls
+        reload tests on all the students
         """
         #Disconnect the signal while the function is running
         with DisconnectSignal(self._root.setupTests, self.setuptests):
@@ -149,7 +161,8 @@ class QTDispatcher(QObject):
     @Slot()
     def populate_students(self):
         """
-        Detects all the students in the grading folder.
+        Slot: Detects all the students in the grading folder. Calls prepare_directory and returns the students list
+        through the studentsUpdated signal
         """
         #Get the grade folder and prepare the directory
         __init__.studentslist = prepare_directory(str(self._root.property('gradeFolder')))

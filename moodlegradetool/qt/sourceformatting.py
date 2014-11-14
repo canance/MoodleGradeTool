@@ -1,3 +1,5 @@
+"""Module for source code formatting"""
+
 __author__ = 'phillip'
 
 from pygments import highlight
@@ -10,7 +12,7 @@ class SourceOutput(QObject):
     _name = ""  # Output's name
     _output = ""  # The output
 
-    srcOutput = Signal()  # Needed to be usable in QML
+    srcOutput = Signal()  #: Dummy signal, needed to be usable in QML
 
     def __init__(self, **kwargs):
         #Initalize the QObject or there will be children crying, hair pulling, and gnashing of teeth if you forget
@@ -27,6 +29,7 @@ class SourceOutput(QObject):
     def getOutput(self):
         """
         Returns the output
+
         :rtype: str
         """
         if not self.formatted:
@@ -38,5 +41,5 @@ class SourceOutput(QObject):
         return self._output
 
     #Make the QProperties
-    name = QProperty(str, getName, notify=srcOutput)
-    output = QProperty(str, getOutput, notify=srcOutput)
+    name = QProperty(str, getName, notify=srcOutput)  #: QProperty for the name of this output
+    output = QProperty(str, getOutput, notify=srcOutput)  #: QProperty for the actual output
