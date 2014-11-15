@@ -18,9 +18,9 @@ from functools import partial
 import shutil
 
 FileMapping = filemanager.FileMapping
-testers = set()  # The available test types
+testers = set()  #: The registered Testers
 
-tests = {}  # The available tests
+tests = {}  #: The available Tests
 
 
 def findtests(path):
@@ -79,6 +79,17 @@ class TesterMeta(abc.ABCMeta):
 
         @classmethod
         def load_config(clss, configfile):  # This will replace parse_config on the class
+            """
+            Parse the configuration and return a dict. The elements in the dict will added to the test class's dict.
+            Tester handles making the dict elements available, subclassing for the particular test, and registering the
+            test. A name key should be in the dict that has the tests name.
+
+            .. note:: The returned dict will get intercepted, the apparent return value is None.
+
+            :param configfile: The path of the configuration file to parse
+            :return: Dictionary of attributes from the configuration file
+            :rtype: dict
+            """
             attrs = cls.__dict__.copy()  # Copy the class's dict
             attrs.update(parser(configfile))  # Update the copy with the parsed config file
             name = attrs['name']  # Get the tests name
@@ -121,12 +132,18 @@ class Tester(object):
     @classmethod
     @abc.abstractmethod
     def parse_config(cls, configfile):
-        """Parse the configuration and return a dict. The elements in the dict will added to the test class's dict.
+        """
+        Parse the configuration and return a dict. The elements in the dict will added to the test class's dict.
         Tester handles making the dict elements available, subclassing for the particular test, and registering the
         test. A name key should be in the dict that has the tests name.
 
+        .. note:: The returned dict will get intercepted, the apparent return value is None.
+
         :param configfile: The path of the configuration file to parse
+        :return: Dictionary of attributes from the configuration file
+        :rtype: dict
         """
+
         return {}
 
     @abc.abstractproperty
@@ -364,7 +381,7 @@ class AdvancedRegexTester(Tester):
     the right value. Each matched regex is worth one point and each assertion is worth another point.
 
     :ivar name: The tests name
-    :ivar qxpath; Partial function to perform xpath queries on the tree with the namespaces qualified
+    :ivar qxpath: Partial function to perform xpath queries on the tree with the namespaces qualified
     :ivar regexs: The list of regexs used in the tests
     :ivar tree: The xml tree of the parsed file.
     """

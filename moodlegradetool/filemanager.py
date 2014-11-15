@@ -110,7 +110,7 @@ def prepare_directory(path):
     Returns a dict with the students name as the key, and list of java classes as the value.
 
     :param path: The directory to prepare
-    :rtype : Dict
+    :rtype: Dict
     """
 
     tmp = {}

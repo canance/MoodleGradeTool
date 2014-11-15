@@ -8,11 +8,25 @@ Welcome to MoodleGradeTool's documentation!
 
 Contents:
 
+How to Use
+----------
+
 .. toctree::
    :maxdepth: 2
 
    gettingstarted
    usingtesters
+
+Developers
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   progoverview
+   testers
+   reports
+   interfaces
 
 
 Indices and tables

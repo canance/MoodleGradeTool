@@ -15,3 +15,4 @@ The Testers
    :maxdepth: 1
 
    using_regextester
+   using_advancedregex
