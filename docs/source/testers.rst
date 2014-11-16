@@ -64,6 +64,23 @@ be added to the **Test's** dictionary.
 The start method is called when it's time for your test to run. It basically is your test. Due to the :ref:`machinery<testermeta-ex>` behind
 |parse|, any data you want from your configuration file will be available in as an attribute of the instance.
 
+Additional output
++++++++++++++++++
+
+Some times a test may want to give additional output to the user or give more detailed information to a
+:py:class:`~moodlegradetool.reporting.Report`. In this case there are two optional attributes that can be included:
+
+    output()
+        A method that returns additional output as a string. This can be shown in addition to the program's source code
+        on the student's result screen.
+
+    report
+        An attribute that contains a list of tuples in the format of (*name*, *value*). Name should be the name on the
+        report and value will be interpreted as a boolean to show whether this part passed or not. Each item in this
+        attribute will add an additional line in the report (if the :py:class:`~moodlegradetool.reporting.Report` being
+        used supports it)
+
+.. warning:: The |Tester| should not add these attributes at all if it doesn't support them
 
 .. _testermeta-ex:
 
