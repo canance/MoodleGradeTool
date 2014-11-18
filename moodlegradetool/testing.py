@@ -1,6 +1,7 @@
 """The classes used to run the tests."""
 
 from moodlegradetool import filemanager
+from moodlegradetool.util import polyopen
 
 __author__ = 'phillip'
 
@@ -223,7 +224,7 @@ class RegexTester(Tester):
         ret['main'] = None
 
         detectors = (cls._detect_name, cls._detect_infile, cls._detect_regex, cls._detect_cp, cls._detect_main)
-        with open(configfile) as f:
+        with polyopen(configfile) as f:
             for line in f:
                 line = line.strip()
 
@@ -343,7 +344,7 @@ class RegexTester(Tester):
         #Call the java program with the input file set to stdin
         #Keep the output
 
-        with open(self.input_file) as f:
+        with polyopen(self.input_file) as f:
             try:
                 self._output = subprocess.check_output(('java', self.clsName), stdin=f,
                                                        stderr=subprocess.STDOUT, cwd=self.cwd)
