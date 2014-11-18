@@ -20,9 +20,9 @@ class Report(object):
 
     filetypes = FileTypes("Invalid", (".check", ".your", ".code"))
 
-    def __init__(self, **kwargs):
+    def __init__(self, source, **kwargs):
         super(Report, self).__init__(**kwargs)
-
+        self.source = source
 
     @abstractmethod
     def generate_report(self):
@@ -60,19 +60,18 @@ class XMLReport(Report):
 
     filetypes = FileTypes("XML Grade Report", (".xml", ))
 
-    def __init__(self, studentlist, **kwargs):
+    def __init__(self, source, **kwargs):
         super(XMLReport, self).__init__(**kwargs)
-        self.studentlist = studentlist
 
     def generate_report(self):
         """
-        Generates an XML file from the list of students in studentlist.
+        Generates an XML file from the list of students in source.
 
         :return: An LXML etree representing the report
         :rtype: lxml.etree._ElementTree
         """
         root = ET.Element("Results")
-        for s in self.studentlist:
+        for s in self.source:
             student = ET.SubElement(root, "student", {"name": s.name})
             for t in s.tests:
                 test = ET.SubElement(student, "test", {"score": str(t.score), "possible": str(t.possible), "name": t.name})
@@ -96,8 +95,7 @@ class XSLReport(XMLReport):
     filetypes = FileTypes("Raw XSL-FO file", (".fo", "xsl", ".xsl-fo", ".xml"))
 
     def __init__(self, source, **kwargs):
-        students = source if not isinstance(source, XMLReport) else source.studentlist
-        super(XSLReport, self).__init__(students, **kwargs)
+        super(XSLReport, self).__init__(source, **kwargs)
 
     def generate_report(self):
         root = super(XSLReport, self).generate_report()
