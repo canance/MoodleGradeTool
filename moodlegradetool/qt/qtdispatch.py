@@ -41,7 +41,7 @@ class QTDispatcher(QObject):
     studentsUpdated = Signal(StudentQList)
 
     def __init__(self, view, **kwargs):
-        #Do not forget to initialize the QObject or you will make puppies yowl
+        # Do not forget to initialize the QObject or you will make puppies yowl
         super(QTDispatcher, self).__init__(**kwargs)
         self._view = view  # Get the view
         self._root = view.rootObject()  # Get the root object
@@ -64,7 +64,7 @@ class QTDispatcher(QObject):
         self.studentsUpdated.connect(root.updateStudents)
 
         self.oldgrade = ""
-
+        self._cache = {}  # KeepAlive cache for objects sent to QML
 
 
     @Slot(int)
@@ -76,7 +76,7 @@ class QTDispatcher(QObject):
         :param id: The id of the selected student
         """
         curStudent = None
-        #Search the students list for a student with the matching ID
+        # Search the students list for a student with the matching ID
         for student in __init__.studentslist:
             if student.getStudentID() == id:
                 curStudent = student  # Store the student
@@ -85,14 +85,13 @@ class QTDispatcher(QObject):
         l = ObjectListModel([TestWrapper(t) for t in curStudent.tests])
         l.moveToThread(__init__.mainthread)
         self.resultsUpdated.emit(l)
-        sleep(.005)
+        self._cache["results"] = l
         #Get the tests that have outputs and add it too the source output object
         outputs = [curStudent.sourceobject] + [TestWrapper(t) for t in curStudent.tests if hasattr(t, 'output')]
         l = ObjectListModel(outputs)
         l.moveToThread(__init__.mainthread)
         self.outputsUpdated.emit(l)  # Send the outputs
-        #TODO See if there is an alternative
-        sleep(.005)  # Delay to prevent segfault
+        self._cache["outputs"] = l
 
 
     @Slot()
@@ -100,7 +99,7 @@ class QTDispatcher(QObject):
         """
         Slot: Parses the test configuration files, passes the available test back through testsUpdated signal
         """
-        #Disconnect this slot while the function is running
+        # Disconnect this slot while the function is running
         with DisconnectSignal(self._root.parseTests, self.parsetests):
             path = self._root.property('testFolder')  # Get the configuration folder from the view
             findtests(str(path))  # Parse the test files
@@ -108,9 +107,7 @@ class QTDispatcher(QObject):
             l = ObjectListModel(self.testwrappers)
             l.moveToThread(__init__.mainthread)
             self.testsUpdated.emit(l)  # Send the
-
-        sleep(.005)  # Delay needed to prevent segfault
-
+            self._cache['tests'] = l
 
 
     @Slot()
@@ -118,14 +115,13 @@ class QTDispatcher(QObject):
         """
         Slot: Performs the student builds and sets the tests to start when the build is finished. See starttest.
         """
-        #Disconnect this slot while the function is running
+        # Disconnect this slot while the function is running
         with DisconnectSignal(self._root.startTesting, self.dobuilds):
             #See if the folder to grade has changed
             if self.oldgrade != self._root.property('gradeFolder'):
                 self.oldgrade = self._root.property('gradeFolder')  # If so store the new folder
                 os.chdir(self.oldgrade)  # Change to that directory
                 self.populate_students()  # And reset the students list
-                sleep(.005)
             for student in __init__.studentslist:  # For every student
                 #Connect the status changed signal to the starttest slot
                 student.status_nameChanged.connect(self.starttest)
@@ -139,7 +135,7 @@ class QTDispatcher(QObject):
 
         :param student: The student that sent the signal
         """
-        #Disconnect the signal if there was either a build error or if the build was finished
+        # Disconnect the signal if there was either a build error or if the build was finished
         if student.state == StudentState.build_error or student.state == StudentState.not_tested:
             student.status_nameChanged.disconnect(self.starttest)
         if student.state == StudentState.not_tested:
@@ -151,7 +147,7 @@ class QTDispatcher(QObject):
         Slot: This will setup the tests selected to be run. It updates the student class's test list and calls
         reload tests on all the students
         """
-        #Disconnect the signal while the function is running
+        # Disconnect the signal while the function is running
         with DisconnectSignal(self._root.setupTests, self.setuptests):
             #Get every test that was selected in the interface
             QMLStudent.tests = [t.test for t in self.testwrappers if t._selected]
@@ -164,9 +160,9 @@ class QTDispatcher(QObject):
         Slot: Detects all the students in the grading folder. Calls prepare_directory and returns the students list
         through the studentsUpdated signal
         """
-        #Get the grade folder and prepare the directory
+        # Get the grade folder and prepare the directory
         __init__.studentslist = prepare_directory(str(self._root.property('gradeFolder')))
         l = StudentQList(__init__.studentslist)
         l.moveToThread(__init__.mainthread)
         self.studentsUpdated.emit(l)  # Send the updated list
-        sleep(.005)  # Delay to prevent segfault
+        self._cache["students"] = l
