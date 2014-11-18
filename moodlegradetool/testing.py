@@ -76,6 +76,10 @@ class TesterMeta(abc.ABCMeta):
     def __init__(cls, clsname, bases, attr):
         super(TesterMeta, cls).__init__(clsname, bases, attr)
 
+        # Don't wrap parse config if we're doing tests
+        if hasattr(filemanager, 'disable_testermeta') and not filemanager.disable_testermeta:
+            return
+
         parser = cls.parse_config  # Get the class's parse config_function
 
         @classmethod
