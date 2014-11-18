@@ -76,9 +76,7 @@ class TesterMeta(abc.ABCMeta):
     def __init__(cls, clsname, bases, attr):
         super(TesterMeta, cls).__init__(clsname, bases, attr)
 
-        # Don't wrap parse config if we're doing tests
-        if hasattr(filemanager, 'disable_testermeta') and not filemanager.disable_testermeta:
-            return
+
 
         parser = cls.parse_config  # Get the class's parse config_function
 
@@ -96,7 +94,11 @@ class TesterMeta(abc.ABCMeta):
             :rtype: dict
             """
             attrs = cls.__dict__.copy()  # Copy the class's dict
-            attrs.update(parser(configfile))  # Update the copy with the parsed config file
+            attribd = parser(configfile)
+            # Don't wrap parse config if we're doing tests
+            if hasattr(TesterMeta, 'disable') and getattr(TesterMeta, 'disable'):
+                return attribd
+            attrs.update(attribd)  # Update the copy with the parsed config file
             name = attrs['name']  # Get the tests name
             tests[name] = type(name, (cls, ), attrs)  # Create the subclass for the test and register it
 
@@ -242,7 +244,7 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_cp(cls, line, d):
-        if line and line[:4] == "CP: ":
+        if line and line.strip()[:4] == "CP: ":
             line = line[3:]
             src, dst = line.split('|')
             src = os.path.abspath(src.strip())
@@ -252,7 +254,7 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_main(cls, line, d):
-        if line and line[:6] == "MAIN: ":
+        if line and line.strip()[:6] == "MAIN: ":
             line = line[5:]
             line = os.path.abspath(line.strip())
             d['main'] = line
@@ -260,7 +262,7 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_name(cls, line, d):
-        if line and line[:6] == "NAME: ":
+        if line and line.strip()[:6] == "NAME: ":
             line = line[5:].strip()
             if not d.has_key('name'):
                 d['name'] = line
@@ -268,9 +270,9 @@ class RegexTester(Tester):
 
     @classmethod
     def _detect_infile(cls, line, d):
-        if line and line[:7] == "STDIN: ":
+        if line and line.strip()[:7] == "STDIN: ":
             line = line[6:].strip()
-            if (not d.has_key('input_file')) and os.path.isfile(line):
+            if (not d.has_key('input_file')):
                 d['input_file'] = os.path.abspath(line)
                 return True
 
