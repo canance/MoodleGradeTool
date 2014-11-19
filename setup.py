@@ -8,5 +8,5 @@ setup(
     license='',
     author='Cory Nance, Phillip Wall',
     author_email='',
-    description='A grading assist tool for moodle program submissions'
+    description='A grading assist tool for Moodle program submissions'
 )

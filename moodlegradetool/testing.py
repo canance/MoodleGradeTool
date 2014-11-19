@@ -411,7 +411,7 @@ class AdvancedRegexTester(Tester):
 
         if not main: raise ValueError("Could not find the main test")
 
-        java_cls = self.clsName if not hasattr(self, 'main') is None else self.main  # Get the main java class
+        java_cls = self.clsName if not hasattr(self, 'main') else self.main  # Get the main java class
         self._out = StringIO.StringIO()  # Make a stringIO to hold the output
         proc = pexpect.spawn('java', [java_cls], logfile=self._out, cwd=self.cwd)  # Spawn the java program
 

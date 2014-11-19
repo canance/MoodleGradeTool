@@ -1,8 +1,7 @@
-from StringIO import StringIO
 
 __author__ = 'phillip'
 
-
+from StringIO import StringIO
 import os
 import subprocess
 import moodlegradetool.testing as testing
@@ -23,8 +22,6 @@ def test_handlesconfig():
     assert testing.RegexTester.handlesconfig(fd)
 
 def test_parseconfig(monkeypatch):
-
-
     fd = StringIO(default_file)
     monkeypatch.setattr(testing.TesterMeta, 'disable', True)
     res = testing.RegexTester.parse_config(fd)
