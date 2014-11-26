@@ -139,6 +139,9 @@ class ExpectMock(object):
         except StopIteration:
             pytest.fail("Too many inputs given")
 
+    def sendline(self, item):
+        pass
+
 @pytest.fixture(scope='module')
 def parse_config():
     fd = StringIO(default_file)
@@ -170,17 +173,39 @@ def test_start(advancedclass, monkeypatch):
     monkeypatch.setattr(pexpect, "spawn", mock.spawn)
     test.start()
 
-def test_match(advancedclass, monkeypatch):
-    pass
-
-def test_filename(advancedclass, monkeypatch):
-    mock = ExpectMock(prompts=(Prompt("File name:", "", "dummy.txt")))
+def test_match(advancedclass):
+    mock = ExpectMock(prompts=(Prompt(pexpect.EOF, "test", tuple()), ))
     node = E.Test(
-        E.expect(
+        E.Expect(
+            E.match("reg1")
+        )
+    )
+    test = advancedclass('MStudent1', "Mock")
+    test.do_test(mock, node)
+    assert test.score == 1
+
+def test_filename(advancedclass):
+    mock = ExpectMock(prompts=(Prompt("File name:", "", ("dummy.txt", )), ))
+    node = E.Test(
+        E.Expect(
             E.input("file1"),
             prompt="File name:"
         )
     )
     test = advancedclass('MStudent1', 'mock')
     test.do_test(mock, node)
+
+def test_assert(advancedclass):
+    mock = ExpectMock(prompts=(Prompt(pexpect.EOF, "Hello, Phillip", tuple())))
+    node = E.Test(
+        E.Expect(
+            E.match("reg2", id="namematch")
+        ),
+        E.assertion(
+            E.group("name", match="namematch")
+        )
+    )
+
+    t = advancedclass("MStud1", "Mock1")
+    t.do_test(mock, node)
 

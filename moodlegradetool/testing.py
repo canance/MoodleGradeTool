@@ -444,7 +444,7 @@ class AdvancedRegexTester(Tester):
                     if m: self._score += 1  # If there is one raise the score
                     if 'id' in ele.attrib:  # If this match has an id
                         asserts[str(ele.get('id'))] = m  # Store it for later
-                    self.report.append(("MATCH: " + expr.pattern, bool(m)))
+                    if hasattr(self, 'report'): self.report.append(("MATCH: " + expr.pattern, bool(m)))
                 if ele.tag == "{http://moodlegradetool.com/advanced_regex}input":  # If its an input tag
                     txt = ele.text.strip()
                     #Try to find the input
@@ -476,7 +476,7 @@ class AdvancedRegexTester(Tester):
                     break  # If we're not passing this assert break
 
             if passes: self._score += 1  # If the assert passed increase the score
-            self.report.append(("ASSERT: " + assr.get('match'), passes))
+            if hasattr(self, 'report'): self.report.append(("ASSERT: " + assr.get('match'), passes))
 
     @staticmethod
     def handlesconfig(fd):
@@ -512,9 +512,12 @@ class AdvancedRegexTester(Tester):
         ret['files'] = defaultdict(list)
 
         for ele in qxpath("./ar:Definitions/ar:file"):
-            id = 'Default' if not 'id' in ele.attrib else ele.attrib['id']
-            ret['files'][id].append(FileMapping(*[s.strip() for s in ele.text.split(':')]))
-
+            fmap = FileMapping(*[s.strip() for s in ele.text.split(':')])
+            if not 'id' in ele.attrib:
+                ret['files']['Default'].append(fmap)
+            else:
+                id = ele.attrib['id']
+                ret['files'][id] = fmap
         ret['tree'] = config
         return ret
 
