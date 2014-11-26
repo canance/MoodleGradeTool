@@ -20,7 +20,6 @@ setup(
     extra_requires=["pyside", ],
 
     #Entry points
-    scripts=[""],
     entry_points={
         'console_scripts': ['moodlegradetool=moodlegradetool.grade:main'],
         'gui_scripts': ['qmoodlegradetool=moodlegradetool.qt.qgrade:main'],
@@ -28,7 +27,7 @@ setup(
             'RegexTester=moodlegradetool.testing:RegexTester',
             'AdvancedRegexTester=moodlegradetool.testing:AdvancedRegexTester'
         ]
-    }
+    },
 
 
 )
