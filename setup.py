@@ -17,7 +17,7 @@ setup(
     #Requires
     setup_requires=["setuptools_git >= 0.3", ],
     install_requires=["lxml", "npyscreen", "enum34", "pexpect"],
-    extra_requires=["pyside", ],
+    extras_requires=["pyside", ],
 
     #Entry points
     entry_points={
