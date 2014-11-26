@@ -19,13 +19,15 @@ import moodlegradetool.cliforms as cliforms
 from moodlegradetool.filemanager import prepare_directory
 import moodlegradetool.student as student
 from moodlegradetool.reporting import XMLReport
-from moodlegradetool.testing import tests, findtests
+from moodlegradetool.testing import tests, findtests, loadtesterplugins
 
 MAX_BUILDS = 5
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  # Force unbuffered stdout
 
 def main():
+
+    loadtesterplugins()  # Load the tester plugins
 
     parser = argparse.ArgumentParser(description="Compile, test, and grade Java files submitted via Moodle.")
     parser.add_argument('-p', '--path', metavar='FolderPath', type=str, help='Path to a zip file or folder containing '

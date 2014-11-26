@@ -3,7 +3,6 @@ from contextlib import contextmanager
 __author__ = 'phillip'
 
 
-
 @contextmanager
 def polyopen(f, *args, **kwargs):
     closeing = kwargs.pop("closing", False)

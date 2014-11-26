@@ -61,7 +61,7 @@ class XMLReport(Report):
     filetypes = FileTypes("XML Grade Report", (".xml", ))
 
     def __init__(self, source, **kwargs):
-        super(XMLReport, self).__init__(**kwargs)
+        super(XMLReport, self).__init__(source, **kwargs)
 
     def generate_report(self):
         """

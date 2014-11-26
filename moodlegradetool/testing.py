@@ -1,4 +1,5 @@
 """The classes used to run the tests."""
+import pkg_resources
 
 from moodlegradetool import filemanager
 from moodlegradetool.util import polyopen
@@ -18,11 +19,17 @@ from collections import defaultdict
 from functools import partial
 import shutil
 
+ENTRYPOINT = "moodlegradetool.testers"  # Entry point for discovering testers
 FileMapping = filemanager.FileMapping
 testers = set()  #: The registered Testers
 
 tests = {}  #: The available Tests
 
+def loadtesterplugins():
+    """Uses setuptools to discover tester plugins."""
+    for entry in pkg_resources.iter_entry_points(ENTRYPOINT):
+        cls = entry.load()
+        cls.register()
 
 def findtests(path):
     """
@@ -531,6 +538,6 @@ class AdvancedRegexTester(Tester):
 
 ManualTest.parse_config('Manual')
 
-RegexTester.register()
-
-AdvancedRegexTester.register()
+# RegexTester.register()
+#
+# AdvancedRegexTester.register()

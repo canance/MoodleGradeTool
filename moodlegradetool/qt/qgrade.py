@@ -8,9 +8,13 @@ from PySide.QtCore import QThread
 
 import moodlegradetool.qt as qt
 from moodlegradetool.qt.qtdispatch import QTDispatcher
+from moodlegradetool.testing import loadtesterplugins
 
 
 def main():
+
+    loadtesterplugins()
+
     qt.mainthread = QThread.currentThread()  # Store current thread
     qt.initialize_view()  # Get the view ready
     dispatch_thread = QThread()  # The QThread to put the dispatcher on
