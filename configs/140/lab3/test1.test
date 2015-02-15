@@ -1,0 +1,10 @@
+#RegexTester
+#test for lab3
+#Cory Nance
+#Sept 16 2014
+
+NAME: lab3-x-wins
+STDIN: ./infile1
+Regex: X's turn
+Regex: Y's turn
+Regex: X won!

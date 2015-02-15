@@ -1,0 +1,10 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Lab Exam 1 - Alice
+STDIN: ./infile
+Regex: ABC Manufacturing Company.*
+Regex: Name.*Hours.*Pay.*
+Regex: Alice.*25.00.*\$318\.75.*

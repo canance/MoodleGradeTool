@@ -1,0 +1,28 @@
+#RegexTester
+#test for lab4
+#Cory Nance
+#Sept 16 2014
+
+NAME: lab5-test1
+CP: ./a.txt | a.txt
+CP: ./b.txt | b.txt
+STDIN: ./infile
+
+REGEX: 1.14
+REGEX: 2.25
+REGEX: 3.36
+REGEX: 4.49
+REGEX: 5.57
+REGEX: assuming default.
+REGEX: 1.14
+REGEX: 2.25
+REGEX: 3.36
+REGEX: 4.49
+REGEX: 5.56
+REGEX: 6.64
+REGEX: 7.72
+REGEX: 8.81
+REGEX: 9.99
+REGEX: 10.4
+REGEX: Unable to open file | No such file or directory
+

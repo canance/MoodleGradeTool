@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab8
+#Cory Nance
+#Oct 22 2014
+
+NAME: Lab 8 Spring
+STDIN: ./infile3
+Regex: Spring|spring

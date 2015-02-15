@@ -1,0 +1,9 @@
+#RegexTester
+#test for lab10
+#Cory Nance
+#Oct 23 2014
+
+NAME: Lab 11 Test 5050, 15
+STDIN: ./infile
+REGEX: 5050
+REGEX: 15

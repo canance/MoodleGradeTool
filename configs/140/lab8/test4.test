@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab8
+#Cory Nance
+#Oct 22 2014
+
+NAME: Lab 8 Summer
+STDIN: ./infile4
+Regex: Summer|summer
