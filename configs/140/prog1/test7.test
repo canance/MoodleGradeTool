@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog1 - ft to mm 609.6
+STDIN: ./infile7
+Regex: 609.6

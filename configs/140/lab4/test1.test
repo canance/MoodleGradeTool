@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab4
+#Cory Nance
+#Jan 27 2015
+
+NAME: lab4-test1
+STDIN: ./infile
+Regex: Tempus fugit

@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog1 - oz to kg 0.056
+STDIN: ./infile2
+Regex: 0.056
