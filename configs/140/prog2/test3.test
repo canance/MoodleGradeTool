@@ -1,0 +1,9 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog 2 - Invalid 3
+STDIN: ./infile3
+Regex: (Invalid|invalid)
+Regex: should be.*3

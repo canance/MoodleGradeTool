@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog2 - valid
+STDIN: ./infile
+Regex: (Valid|valid)
