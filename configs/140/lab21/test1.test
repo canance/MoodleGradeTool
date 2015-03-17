@@ -1,0 +1,8 @@
+#RegexTester
+#test for lab10
+#Cory Nance
+#Oct 23 2014
+
+NAME: Lab 11 Test B
+STDIN: ./infile
+REGEX: (Hex:|hex:)\sB
