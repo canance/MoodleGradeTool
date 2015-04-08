@@ -1,0 +1,10 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog4 - Discount
+STDIN: ./infile2
+Regex: 200.00
+Regex: 20.00
+Regex: 180.00

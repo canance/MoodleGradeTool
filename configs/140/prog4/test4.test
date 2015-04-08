@@ -1,0 +1,9 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog4 - No Discount 3
+STDIN: ./infile4
+Regex: 266.75
+Regex: 0.0

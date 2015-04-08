@@ -1,0 +1,9 @@
+#RegexTester
+#test for lab9
+#Cory Nance
+#Oct 23 2014
+
+NAME: Prog3
+STDIN: ./infile2
+Regex: four hundred eighteen and 25
+Regex: 418.25
