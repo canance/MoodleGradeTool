@@ -1,0 +1,13 @@
+#RegexTester
+#test for lab30
+#Cory Nance
+#Oct 23 2014
+
+NAME: Lab 31
+STDIN: ./infile
+REGEX: Dentist
+REGEX: Thu Apr 23 11:14:50 EDT 2015
+REGEX: Appointment at 3:00
+REGEX: Homework
+REGEX: Thu Apr 23 11:14:50 EDT 2015
+REGEX: CSCI 140 study!
