@@ -152,6 +152,8 @@ def prepare_directory(path):
 
         if f[-5:] == '.java': #single file
             prepare_single_file(studentname, filename, path, f, tmp)
+        elif f[-3:] == '.py':
+            prepare_single_file(studentname, filename, path, f, tmp)
         elif f[-4:] == '.zip': #zip file
             prepare_zip_file(studentname, filename, path, f, tmp)
 
@@ -160,7 +162,8 @@ def prepare_directory(path):
         main = cl.pop(0)  # Assume first class is the main one
         res.append(Student(name, main, cl))
 
-    return res
+    # sort by last name and return
+    return sorted(res, key=lambda stu: stu.name.split(" ")[1])
 
 
 def prepare_zip_file(studentname, filename, path, f, tmp):
@@ -182,7 +185,7 @@ def prepare_zip_file(studentname, filename, path, f, tmp):
     files = os.listdir(zipdir)
 
     for f in files:
-        if f[-5:] == '.java':
+        if f[-5:] == '.java' or f[-3:] == '.py':
             origfile = "{}/{}".format(zipdir, f)
             destfile = "{}/{}".format(studentdir, f)
             spath = "{}/{}".format(path, studentname)
